@@ -1010,9 +1010,15 @@ defm : VPatNConvertI2FPSDNode_V<uint_to_fp, "PseudoVFNCVT_F_XU_W">;
 foreach fvtiToFWti = AllWidenableFloatVectors in {
   defvar fvti = fvtiToFWti.Vti;
   defvar fwti = fvtiToFWti.Wti;
+  let Predicates = !if(!eq(fvti.Scalar, f16), [HasVInstructionsF16Minimal],
+                       !listconcat(GetVTypePredicates<fvti>.Predicates,
+                                   GetVTypePredicates<fwti>.Predicates)) in
   def : Pat<(fvti.Vector (fpround (fwti.Vector fwti.RegClass:$rs1))),
             (!cast<Instruction>("PseudoVFNCVT_F_F_W_"#fvti.LMul.MX)
-                fwti.RegClass:$rs1, fvti.AVL, fvti.Log2SEW)>;
+                (fvti.Vector (IMPLICIT_DEF)),
+                fwti.RegClass:$rs1,
+                FRM_DYN,
+                fvti.AVL, fvti.Log2SEW, TA_MA)>;
 }
 } // Predicates = [HasVInstructionsAnyF]
 

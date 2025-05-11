@@ -1729,6 +1729,9 @@ foreach fvti = AllFloatVectors in {
   foreach fvtiToFWti = AllWidenableFloatVectors in {
     defvar fvti = fvtiToFWti.Vti;
     defvar fwti = fvtiToFWti.Wti;
+    let Predicates = !if(!eq(fvti.Scalar, f16), [HasVInstructionsF16Minimal],
+                       !listconcat(GetVTypePredicates<fvti>.Predicates,
+                                   GetVTypePredicates<fwti>.Predicates)) in
     def : Pat<(fwti.Vector (riscv_fpextend_vl (fvti.Vector fvti.RegClass:$rs1),
                                               (fvti.Mask V0),
                                               VLOpFrag)),
@@ -1745,22 +1748,28 @@ foreach fvti = AllFloatVectors in {
   foreach fvtiToFWti = AllWidenableFloatVectors in {
     defvar fvti = fvtiToFWti.Vti;
     defvar fwti = fvtiToFWti.Wti;
+    // Define vfwcvt.f.f.v for f16 when Zvfhmin is enable.
+    let Predicates = !if(!eq(fvti.Scalar, f16), [HasVInstructionsF16Minimal],
+                        !listconcat(GetVTypePredicates<fvti>.Predicates,
+                                    GetVTypePredicates<fwti>.Predicates)) in {
     def : Pat<(fvti.Vector (riscv_fpround_vl (fwti.Vector fwti.RegClass:$rs1),
                                              (fwti.Mask V0),
                                              VLOpFrag)),
               (!cast<Instruction>("PseudoVFNCVT_F_F_W_"#fvti.LMul.MX#"_MASK")
                   (fvti.Vector (IMPLICIT_DEF)), fwti.RegClass:$rs1,
-                  (fwti.Mask V0), GPR:$vl, fvti.Log2SEW, TA_MA)>;
+                  (fwti.Mask V0), FRM_DYN, GPR:$vl, fvti.Log2SEW, TA_MA)>;
+
+  let Predicates = !listconcat(GetVTypePredicates<fvti>.Predicates,
+                               GetVTypePredicates<fwti>.Predicates) in
 
     def : Pat<(fvti.Vector (riscv_fncvt_rod_vl (fwti.Vector fwti.RegClass:$rs1),
                                                (fwti.Mask V0),
                                                VLOpFrag)),
               (!cast<Instruction>("PseudoVFNCVT_ROD_F_F_W_"#fvti.LMul.MX#"_MASK")
                   (fvti.Vector (IMPLICIT_DEF)), fwti.RegClass:$rs1,
-                  (fwti.Mask V0), GPR:$vl, fvti.Log2SEW, TA_MA)>;
+                  (fwti.Mask V0), FRM_DYN, GPR:$vl, fvti.Log2SEW, TA_MA)>;
+    }
   }
-}
-
 } // Predicates = [HasVInstructionsAnyF]
 
 let Predicates = [HasVInstructions] in {

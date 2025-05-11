@@ -1485,7 +1485,7 @@ foreach n = [1] in {
 */
 
 // TODO: Will enable this after non divergent execution path are implemented.
-// include "VentusInstrInfoVPseudos.td"
+include "VentusInstrInfoVPseudos.td"
 
 // TODO: add other instructions
 def PseudoVOR_VI_IMM11    : PseudoVOPVIIMM11<or>;

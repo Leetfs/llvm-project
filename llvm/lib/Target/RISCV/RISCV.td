@@ -389,6 +389,16 @@ def FeatureStdExtZvfh
                        "'Zvfh' (Vector Half-Precision Floating-Point)",
                        [FeatureStdExtZve32f]>;
 
+def FeatureStdExtZvfhmin
+    : SubtargetFeature<"zvfhmin", "HasStdExtZvfhmin", "true",
+                       "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal)",
+                       [FeatureStdExtZve32f]>;
+
+def HasVInstructionsF16Minimal : Predicate<"Subtarget->hasVInstructionsF16Minimal()">,
+      AssemblerPredicate<(any_of FeatureStdExtZvfhmin, FeatureStdExtZvfh),
+                         "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal) or "
+                         "'Zvfh' (Vector Half-Precision Floating-Point)">;
+
 def FeatureStdExtZicbom
     : SubtargetFeature<"zicbom", "HasStdExtZicbom", "true",
                        "'Zicbom' (Cache-Block Management Instructions)">;
