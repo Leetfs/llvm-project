@@ -121,7 +121,7 @@ class log2<int num> {
   int val = !if(!eq(num, 1), 0, !add(1, log2<!srl(num, 1)>.val));
 }
 
-def VLOpFrag : PatFrag<(ops), (XLenVT (VLOp (XLenVT AVL:$vl)))>;
+def VLOpFrag : PatFrag<(ops), (XLenVT (VLOp (XLenVT $vl)))>;
 
 // Output pattern for X0 used to represent VLMAX in the pseudo instructions.
 // We can't use X0 register becuase the AVL operands use GPRNoX0.

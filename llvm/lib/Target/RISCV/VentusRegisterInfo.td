@@ -558,3 +558,81 @@ def AnyReg : RegisterClass<"RISCV", [untyped], 32,
                                 (sequence "V%u", 0, 255))> {
   let Size = 32;
 }
+
+//===----------------------------------------------------------------------===//
+// Vector type mapping to LLVM types.
+//===----------------------------------------------------------------------===//
+
+// The V vector extension requires that VLEN >= 128 and <= 65536.
+// Additionally, the only supported ELEN values are 32 and 64,
+// thus `vscale` can be defined as VLEN/64,
+// allowing the same types with either ELEN value.
+//
+//         MF8    MF4     MF2     M1      M2      M4       M8
+// i64*    N/A    N/A     N/A     nxv1i64 nxv2i64 nxv4i64  nxv8i64
+// i32     N/A    N/A     nxv1i32 nxv2i32 nxv4i32 nxv8i32  nxv16i32
+// i16     N/A    nxv1i16 nxv2i16 nxv4i16 nxv8i16 nxv16i16 nxv32i16
+// i8      nxv1i8 nxv2i8  nxv4i8  nxv8i8  nxv16i8 nxv32i8  nxv64i8
+// double* N/A    N/A     N/A     nxv1f64 nxv2f64 nxv4f64  nxv8f64
+// float   N/A    N/A     nxv1f32 nxv2f32 nxv4f32 nxv8f32  nxv16f32
+// half    N/A    nxv1f16 nxv2f16 nxv4f16 nxv8f16 nxv16f16 nxv32f16
+// * ELEN=64
+
+defvar vint8mf8_t = nxv1i8;
+defvar vint8mf4_t = nxv2i8;
+defvar vint8mf2_t = nxv4i8;
+defvar vint8m1_t = nxv8i8;
+defvar vint8m2_t = nxv16i8;
+defvar vint8m4_t = nxv32i8;
+defvar vint8m8_t = nxv64i8;
+
+defvar vint16mf4_t = nxv1i16;
+defvar vint16mf2_t = nxv2i16;
+defvar vint16m1_t  = nxv4i16;
+defvar vint16m2_t  = nxv8i16;
+defvar vint16m4_t  = nxv16i16;
+defvar vint16m8_t  = nxv32i16;
+
+defvar vint32mf2_t = nxv1i32;
+defvar vint32m1_t  = nxv2i32;
+defvar vint32m2_t  = nxv4i32;
+defvar vint32m4_t  = nxv8i32;
+defvar vint32m8_t  = nxv16i32;
+
+defvar vint64m1_t = nxv1i64;
+defvar vint64m2_t = nxv2i64;
+defvar vint64m4_t = nxv4i64;
+defvar vint64m8_t = nxv8i64;
+
+defvar vfloat16mf4_t = nxv1f16;
+defvar vfloat16mf2_t = nxv2f16;
+defvar vfloat16m1_t  = nxv4f16;
+defvar vfloat16m2_t  = nxv8f16;
+defvar vfloat16m4_t  = nxv16f16;
+defvar vfloat16m8_t  = nxv32f16;
+
+defvar vbfloat16mf4_t = nxv1bf16;
+defvar vbfloat16mf2_t = nxv2bf16;
+defvar vbfloat16m1_t  = nxv4bf16;
+defvar vbfloat16m2_t  = nxv8bf16;
+defvar vbfloat16m4_t  = nxv16bf16;
+defvar vbfloat16m8_t  = nxv32bf16;
+
+defvar vfloat32mf2_t = nxv1f32;
+defvar vfloat32m1_t  = nxv2f32;
+defvar vfloat32m2_t  = nxv4f32;
+defvar vfloat32m4_t  = nxv8f32;
+defvar vfloat32m8_t  = nxv16f32;
+
+defvar vfloat64m1_t = nxv1f64;
+defvar vfloat64m2_t = nxv2f64;
+defvar vfloat64m4_t = nxv4f64;
+defvar vfloat64m8_t = nxv8f64;
+
+defvar vbool1_t  = nxv64i1;
+defvar vbool2_t  = nxv32i1;
+defvar vbool4_t  = nxv16i1;
+defvar vbool8_t  = nxv8i1;
+defvar vbool16_t = nxv4i1;
+defvar vbool32_t = nxv2i1;
+defvar vbool64_t = nxv1i1;
