@@ -636,3 +636,57 @@ defvar vbool8_t  = nxv8i1;
 defvar vbool16_t = nxv4i1;
 defvar vbool32_t = nxv2i1;
 defvar vbool64_t = nxv1i1;
+
+defvar VMaskVTs = [vbool1_t, vbool2_t, vbool4_t, vbool8_t, vbool16_t,
+                   vbool32_t, vbool64_t];
+
+defvar VM1VTs = [vint8m1_t, vint16m1_t, vint32m1_t, vint64m1_t,
+                 vbfloat16m1_t, vfloat16m1_t, vfloat32m1_t,
+                 vfloat64m1_t, vint8mf2_t, vint8mf4_t, vint8mf8_t,
+                 vint16mf2_t, vint16mf4_t, vint32mf2_t,
+                 vfloat16mf4_t, vfloat16mf2_t, vbfloat16mf4_t,
+                 vbfloat16mf2_t, vfloat32mf2_t];
+
+defvar VM2VTs = [vint8m2_t, vint16m2_t, vint32m2_t, vint64m2_t,
+                 vfloat16m2_t, vbfloat16m2_t,
+                 vfloat32m2_t, vfloat64m2_t];
+
+defvar VM4VTs = [vint8m4_t, vint16m4_t, vint32m4_t, vint64m4_t,
+                 vfloat16m4_t, vbfloat16m4_t,
+                 vfloat32m4_t, vfloat64m4_t];
+
+defvar VM8VTs = [vint8m8_t, vint16m8_t, vint32m8_t, vint64m8_t,
+                 vfloat16m8_t, vbfloat16m8_t,
+                 vfloat32m8_t, vfloat64m8_t];
+
+// We reverse the order of last 8 registers so that we don't needlessly prevent
+// allocation of higher lmul register groups while still putting v0 last in the
+// allocation order.
+
+def VR : RVRegisterClass<"RISCV",
+                         !listconcat(VM1VTs, VMaskVTs),
+                         64,
+                         (add (sequence "V%u", 8, 31), (sequence "V%u", 7, 0))> {
+  let IsVGPR = 1;
+}
+
+def VRNoV0 : RVRegisterClass<"RISCV",
+                             !listconcat(VM1VTs, VMaskVTs),
+                             64,
+                             (sub VR, V0)> {
+  let IsVGPR = 1;
+}
+
+def VMV0 : RVRegisterClass<"RISCV", VMaskVTs, 64, (add V0)> {
+  let Size = 64;
+}
+
+def VMaskAsmOperand : AsmOperandClass {
+  let Name = "RVVMaskRegOpOperand";
+  let RenderMethod = "addRegOperands";
+  let PredicateMethod = "isV0Reg";
+  let ParserMethod = "parseMaskReg";
+  let IsOptional = 1;
+  let DefaultMethod = "defaultMaskRegOp";
+  let DiagnosticType = "InvalidVMaskRegister";
+}

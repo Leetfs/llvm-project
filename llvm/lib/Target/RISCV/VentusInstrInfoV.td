@@ -16,6 +16,13 @@
 
 include "VentusInstrFormatsV.td"
 
+def VMaskOp : RegisterOperand<VMV0> {
+  let ParserMatchClass = VMaskAsmOperand;
+  let PrintMethod = "printVMaskReg";
+  let EncoderMethod = "getVMaskReg";
+  let DecoderMethod = "decodeVMaskReg";
+}
+
 /// Generic pattern classes
 
 // RVV VV, VX, VI instruction pattern class for integer binary operations

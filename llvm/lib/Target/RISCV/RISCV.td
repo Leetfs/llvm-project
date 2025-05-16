@@ -399,6 +399,12 @@ def HasVInstructionsF16Minimal : Predicate<"Subtarget->hasVInstructionsF16Minima
                          "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal) or "
                          "'Zvfh' (Vector Half-Precision Floating-Point)">;
 
+def HasVInstructionsBF16Minimal : Predicate<"Subtarget->hasVInstructionsBF16Minimal()">;
+def HasVInstructionsF16 : Predicate<"Subtarget->hasVInstructionsF16()">;
+def HasVInstructionsF64 : Predicate<"Subtarget->hasVInstructionsF64()">;
+
+def HasVInstructionsFullMultiply : Predicate<"Subtarget->hasVInstructionsFullMultiply()">;
+
 def FeatureStdExtZicbom
     : SubtargetFeature<"zicbom", "HasStdExtZicbom", "true",
                        "'Zicbom' (Cache-Block Management Instructions)">;
