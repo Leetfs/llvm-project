@@ -73,6 +73,21 @@ class RISCVReg64<RISCVReg32 subreg> : Register<""> {
   let AltNames = subreg.AltNames;
 }
 
+def sub_vrm4_0 : SubRegIndex<256>;
+def sub_vrm4_1 : SubRegIndex<256, 256>;
+def sub_vrm2_0 : SubRegIndex<128>;
+def sub_vrm2_1 : SubRegIndex<128, 128>;
+def sub_vrm2_2 : ComposedSubRegIndex<sub_vrm4_1, sub_vrm2_0>;
+def sub_vrm2_3 : ComposedSubRegIndex<sub_vrm4_1, sub_vrm2_1>;
+def sub_vrm1_0 : SubRegIndex<64>;
+def sub_vrm1_1 : SubRegIndex<64, 64>;
+def sub_vrm1_2 : ComposedSubRegIndex<sub_vrm2_1, sub_vrm1_0>;
+def sub_vrm1_3 : ComposedSubRegIndex<sub_vrm2_1, sub_vrm1_1>;
+def sub_vrm1_4 : ComposedSubRegIndex<sub_vrm2_2, sub_vrm1_0>;
+def sub_vrm1_5 : ComposedSubRegIndex<sub_vrm2_2, sub_vrm1_1>;
+def sub_vrm1_6 : ComposedSubRegIndex<sub_vrm2_3, sub_vrm1_0>;
+def sub_vrm1_7 : ComposedSubRegIndex<sub_vrm2_3, sub_vrm1_1>;
+
 class RISCVRegWithSubRegs<bits<8> Enc, string n, list<Register> subregs,
                           list<string> alt = []>
       : RegisterWithSubRegs<n, subregs> {
@@ -509,6 +524,33 @@ foreach Index = 0...255 in {
     DwarfRegNum<[!add(Index, 2560), !add(Index, 1536)]>;
 }
 
+foreach Index = 0...31 in {
+  def V#Index#M2 : RISCVRegWithSubRegs<Index, "v"#Index,
+                     [!cast<Register>("V"#Index),
+                      !cast<Register>("V"#!add(Index, 1))]>,
+                   DwarfRegAlias<!cast<Register>("V"#Index)> {
+    let SubRegIndices = [sub_vrm1_0, sub_vrm1_1];
+  }
+}
+
+foreach Index = 0...29 in {
+  def V#Index#M4 : RISCVRegWithSubRegs<Index, "v"#Index,
+                     [!cast<Register>("V"#Index#"M2"),
+                      !cast<Register>("V"#!add(Index, 2)#"M2")]>,
+                   DwarfRegAlias<!cast<Register>("V"#Index)> {
+    let SubRegIndices = [sub_vrm2_0, sub_vrm2_1];
+  }
+}
+
+foreach Index = 0...25 in {
+  def V#Index#M8 : RISCVRegWithSubRegs<Index, "v"#Index,
+                     [!cast<Register>("V"#Index#"M4"),
+                      !cast<Register>("V"#!add(Index, 4)#"M4")]>,
+                   DwarfRegAlias<!cast<Register>("V"#Index)> {
+    let SubRegIndices = [sub_vrm4_0, sub_vrm4_1];
+  }
+}
+
 class RegisterTypes<list<ValueType> reg_types> {
   list<ValueType> types = reg_types;
 }
@@ -637,6 +679,21 @@ defvar vbool16_t = nxv4i1;
 defvar vbool32_t = nxv2i1;
 defvar vbool64_t = nxv1i1;
 
+//===----------------------------------------------------------------------===//
+// Utility classes for segment load/store.
+//===----------------------------------------------------------------------===//
+// The set of legal NF for LMUL = lmul.
+// LMUL <= 1, NF = 2, 3, 4, 5, 6, 7, 8
+// LMUL == 2, NF = 2, 3, 4
+// LMUL == 4, NF = 2
+// LMUL == 8, no legal NF
+class NFList<int lmul> {
+  list<int> L = !cond(!eq(lmul, 8): [],
+                      !eq(lmul, 4): [2],
+                      !eq(lmul, 2): [2, 3, 4],
+                      true: [2, 3, 4, 5, 6, 7, 8]);
+}
+
 defvar VMaskVTs = [vbool1_t, vbool2_t, vbool4_t, vbool8_t, vbool16_t,
                    vbool32_t, vbool64_t];
 
@@ -677,9 +734,21 @@ def VRNoV0 : RVRegisterClass<"RISCV",
   let IsVGPR = 1;
 }
 
-def VMV0 : RVRegisterClass<"RISCV", VMaskVTs, 64, (add V0)> {
-  let Size = 64;
-}
+def VRM2 : RVRegisterClass<"RISCV", VM2VTs, 64, (add (sequence "V%uM2", 8, 31, 2),
+                             (sequence "V%uM2", 6, 0, 2))>;
+
+def VRM2NoV0 : RVRegisterClass<"RISCV", VM2VTs, 64, (sub VRM2, V0M2)>;
+
+def VRM4 : RVRegisterClass<"RISCV", VM4VTs, 64, (add V8M4, V12M4, V16M4, V20M4,
+                             V24M4, V28M4, V4M4, V0M4)>;
+
+def VRM4NoV0 : RVRegisterClass<"RISCV", VM4VTs, 64, (sub VRM4, V0M4)>;
+
+def VRM8 : RVRegisterClass<"RISCV", VM8VTs, 64, (add V8M8, V16M8, V24M8, V0M8)>;
+
+def VRM8NoV0 : RVRegisterClass<"RISCV", VM8VTs, 64, (sub VRM8, V0M8)>;
+
+def VMV0 : RVRegisterClass<"RISCV", VMaskVTs, 64, (add V0)>;
 
 def VMaskAsmOperand : AsmOperandClass {
   let Name = "RVVMaskRegOpOperand";

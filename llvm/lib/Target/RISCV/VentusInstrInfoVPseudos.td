@@ -87,7 +87,14 @@ class LMULInfo<int lmul, int oct, RVRegisterClass regclass, RVRegisterClass wreg
 }
 
 // Associate LMUL with tablegen records of register classes.
-def V_M1  : LMULInfo<0b000,  8,   VR,        VR,   VR,   VR, VR, "M1">;
+def V_M1  : LMULInfo<0b000,  8,   VR,        VRM2,   VR,   VR, VR, "M1">;
+def V_M2  : LMULInfo<0b001, 16, VRM2,        VRM4,   VR,   VR, VR, "M2">;
+def V_M4  : LMULInfo<0b010, 32, VRM4,        VRM8, VRM2,   VR, VR, "M4">;
+def V_M8  : LMULInfo<0b011, 64, VRM8,/*NoVReg*/VR, VRM4, VRM2, VR, "M8">;
+
+def V_MF8 : LMULInfo<0b101, 1, VR, VR,/*NoVReg*/VR,/*NoVReg*/VR,/*NoVReg*/VR, "MF8">;
+def V_MF4 : LMULInfo<0b110, 2, VR, VR,          VR,/*NoVReg*/VR,/*NoVReg*/VR, "MF4">;
+def V_MF2 : LMULInfo<0b111, 4, VR, VR,          VR,          VR,/*NoVReg*/VR, "MF2">;
 
 // Used to iterate over all possible LMULs.
 defvar MxList = [V_M1];
@@ -130,7 +137,7 @@ defvar FPList = [SCALAR_F16, SCALAR_F32, SCALAR_F64];
 defvar FPListW = [SCALAR_F16, SCALAR_F32];
 
 class NFSet<LMULInfo m> {
-  defvar lmul = !shl(1, m.value);
+  int lmul = !shl(1, m.value);
   list<int> L = NFList<lmul>.L;
 }
 
@@ -147,6 +154,13 @@ def VLMax : OutPatFrag<(ops), (XLenVT -1)>;
 
 // List of EEW.
 defvar EEWList = [8, 16, 32, 64];
+
+class SegRegClass<LMULInfo m, int nf> {
+  RVRegisterClass RC = !cast<RVRegisterClass>("VRN" # nf # !cond(!eq(m.value, V_MF8.value): V_M1.MX,
+                                           !eq(m.value, V_MF4.value): V_M1.MX,
+                                           !eq(m.value, V_MF2.value): V_M1.MX,
+                                           true: m.MX));
+}
 
 //===----------------------------------------------------------------------===//
 // Vector register and vector group type information.
