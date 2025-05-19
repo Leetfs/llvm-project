@@ -74,14 +74,14 @@ class PseudoToVInst<string PseudoInst> {
 }
 
 // This class describes information associated to the LMUL.
-class LMULInfo<int lmul, int oct, RVRegisterClass regclass, RVRegisterClass wregclass,
-               RVRegisterClass f2regclass, RVRegisterClass f4regclass, RVRegisterClass f8regclass, string mx> {
+class LMULInfo<int lmul, int oct, VReg regclass, VReg wregclass,
+               VReg f2regclass, VReg f4regclass, VReg f8regclass, string mx> {
   bits<3> value = lmul; // This is encoded as the vlmul field of vtype.
-  RVRegisterClass vrclass = regclass;
-  RVRegisterClass wvrclass = wregclass;
-  RVRegisterClass f8vrclass = f8regclass;
-  RVRegisterClass f4vrclass = f4regclass;
-  RVRegisterClass f2vrclass = f2regclass;
+  VReg vrclass = regclass;
+  VReg wvrclass = wregclass;
+  VReg f8vrclass = f8regclass;
+  VReg f4vrclass = f4regclass;
+  VReg f2vrclass = f2regclass;
   string MX = mx;
   int octuple = oct;
 }
@@ -119,9 +119,9 @@ class MxSet<int eew> {
   list<LMULInfo> m = [V_M1];
 }
 
-class FPR_Info<RegisterClass regclass, string fx, list<LMULInfo> mxlist,
+class FPR_Info<RVRegisterClass regclass, string fx, list<LMULInfo> mxlist,
                list<LMULInfo> mxlistfw> {
-  RegisterClass fprclass = regclass;
+  RVRegisterClass fprclass = regclass;
   string FX = fx;
   list<LMULInfo> MxList = mxlist;
   list<LMULInfo> MxListFW = mxlistfw;
@@ -156,7 +156,7 @@ def VLMax : OutPatFrag<(ops), (XLenVT -1)>;
 defvar EEWList = [8, 16, 32, 64];
 
 class SegRegClass<LMULInfo m, int nf> {
-  RVRegisterClass RC = !cast<RVRegisterClass>("VRN" # nf # !cond(!eq(m.value, V_MF8.value): V_M1.MX,
+  VReg RC = !cast<VReg>("VRN" # nf # !cond(!eq(m.value, V_MF8.value): V_M1.MX,
                                            !eq(m.value, V_MF4.value): V_M1.MX,
                                            !eq(m.value, V_MF2.value): V_M1.MX,
                                            true: m.MX));
@@ -166,17 +166,17 @@ class SegRegClass<LMULInfo m, int nf> {
 // Vector register and vector group type information.
 //===----------------------------------------------------------------------===//
 
-class VTypeInfo<ValueType Vec, ValueType Mas, int Sew, RVRegisterClass Reg, LMULInfo M,
-                ValueType Scal = XLenVT, RegisterClass ScalarReg = GPR>
+class VTypeInfo<ValueType Vec, ValueType Mas, int Sew, VReg Reg, LMULInfo M,
+                ValueType Scal = XLenVT, RVRegisterClass ScalarReg = GPR>
 {
   ValueType Vector = Vec;
   ValueType Mask = Mas;
   int SEW = Sew;
   int Log2SEW = log2<Sew>.val;
-  RVRegisterClass RegClass = Reg;
+  VReg RegClass = Reg;
   LMULInfo LMul = M;
   ValueType Scalar = Scal;
-  RegisterClass ScalarRegClass = ScalarReg;
+  RVRegisterClass ScalarRegClass = ScalarReg;
   // The pattern fragment which produces the AVL operand, representing the
   // "natural" vector length for this type. For scalable vectors this is VLMax.
   OutPatFrag AVL = VLMax;
@@ -188,8 +188,8 @@ class VTypeInfo<ValueType Vec, ValueType Mas, int Sew, RVRegisterClass Reg, LMUL
 }
 
 class GroupVTypeInfo<ValueType Vec, ValueType VecM1, ValueType Mas, int Sew,
-                     RVRegisterClass Reg, LMULInfo M, ValueType Scal = XLenVT,
-                     RegisterClass ScalarReg = GPR>
+                     VReg Reg, LMULInfo M, ValueType Scal = XLenVT,
+                     RVRegisterClass ScalarReg = GPR>
     : VTypeInfo<Vec, Mas, Sew, Reg, M, Scal, ScalarReg>
 {
   ValueType VectorM1 = VecM1;
@@ -434,7 +434,7 @@ class VPseudo<Instruction instr, LMULInfo m, dag outs, dag ins> :
   let VLMul = m.value;
 }
 
-class VPseudoUSLoadNoMask<RVRegisterClass RetClass, int EEW, bit DummyMask = 1> :
+class VPseudoUSLoadNoMask<VReg RetClass, int EEW, bit DummyMask = 1> :
       Pseudo<(outs RetClass:$rd),
              (ins GPRMem:$rs1, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -447,7 +447,7 @@ class VPseudoUSLoadNoMask<RVRegisterClass RetClass, int EEW, bit DummyMask = 1> 
   let HasDummyMask = DummyMask;
 }
 
-class VPseudoUSLoadNoMaskTU<RVRegisterClass RetClass, int EEW> :
+class VPseudoUSLoadNoMaskTU<VReg RetClass, int EEW> :
       Pseudo<(outs RetClass:$rd),
              (ins RetClass:$dest, GPRMem:$rs1, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -462,7 +462,7 @@ class VPseudoUSLoadNoMaskTU<RVRegisterClass RetClass, int EEW> :
   let Constraints = "$rd = $dest";
 }
 
-class VPseudoUSLoadMask<RVRegisterClass RetClass, int EEW> :
+class VPseudoUSLoadMask<VReg RetClass, int EEW> :
       Pseudo<(outs VRNoV0:$rd),
               (ins VRNoV0:$merge,
                    GPRMem:$rs1,
@@ -480,7 +480,7 @@ class VPseudoUSLoadMask<RVRegisterClass RetClass, int EEW> :
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoUSLoadFFNoMask<RVRegisterClass RetClass, int EEW, bit DummyMask = 1> :
+class VPseudoUSLoadFFNoMask<VReg RetClass, int EEW, bit DummyMask = 1> :
       Pseudo<(outs RetClass:$rd, GPR:$vl),
              (ins GPRMem:$rs1, AVL:$avl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -493,7 +493,7 @@ class VPseudoUSLoadFFNoMask<RVRegisterClass RetClass, int EEW, bit DummyMask = 1
   let HasDummyMask = DummyMask;
 }
 
-class VPseudoUSLoadFFNoMaskTU<RVRegisterClass RetClass, int EEW> :
+class VPseudoUSLoadFFNoMaskTU<VReg RetClass, int EEW> :
       Pseudo<(outs RetClass:$rd, GPR:$vl),
              (ins RetClass:$dest, GPRMem:$rs1, AVL:$avl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -508,7 +508,7 @@ class VPseudoUSLoadFFNoMaskTU<RVRegisterClass RetClass, int EEW> :
   let Constraints = "$rd = $dest";
 }
 
-class VPseudoUSLoadFFMask<RVRegisterClass RetClass, int EEW> :
+class VPseudoUSLoadFFMask<VReg RetClass, int EEW> :
       Pseudo<(outs VRNoV0:$rd, GPR:$vl),
               (ins VRNoV0:$merge,
                    GPRMem:$rs1,
@@ -526,7 +526,7 @@ class VPseudoUSLoadFFMask<RVRegisterClass RetClass, int EEW> :
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoSLoadNoMask<RVRegisterClass RetClass, int EEW>:
+class VPseudoSLoadNoMask<VReg RetClass, int EEW>:
       Pseudo<(outs RetClass:$rd),
              (ins GPRMem:$rs1, GPR:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -539,7 +539,7 @@ class VPseudoSLoadNoMask<RVRegisterClass RetClass, int EEW>:
   let HasDummyMask = 1;
 }
 
-class VPseudoSLoadNoMaskTU<RVRegisterClass RetClass, int EEW>:
+class VPseudoSLoadNoMaskTU<VReg RetClass, int EEW>:
       Pseudo<(outs RetClass:$rd),
              (ins RetClass:$dest, GPRMem:$rs1, GPR:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -554,7 +554,7 @@ class VPseudoSLoadNoMaskTU<RVRegisterClass RetClass, int EEW>:
   let Constraints = "$rd = $dest";
 }
 
-class VPseudoSLoadMask<RVRegisterClass RetClass, int EEW>:
+class VPseudoSLoadMask<VReg RetClass, int EEW>:
       Pseudo<(outs VRNoV0:$rd),
               (ins VRNoV0:$merge,
                    GPRMem:$rs1, GPR:$rs2,
@@ -572,7 +572,7 @@ class VPseudoSLoadMask<RVRegisterClass RetClass, int EEW>:
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoILoadNoMask<RVRegisterClass RetClass, RVRegisterClass IdxClass, int EEW, bits<3> LMUL,
+class VPseudoILoadNoMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
                          bit Ordered, bit EarlyClobber>:
       Pseudo<(outs RetClass:$rd),
              (ins GPRMem:$rs1, IdxClass:$rs2, AVL:$vl,
@@ -588,7 +588,7 @@ class VPseudoILoadNoMask<RVRegisterClass RetClass, RVRegisterClass IdxClass, int
   let Constraints = !if(!eq(EarlyClobber, 1), "@earlyclobber $rd", "");
 }
 
-class VPseudoILoadNoMaskTU<RVRegisterClass RetClass, RVRegisterClass IdxClass, int EEW, bits<3> LMUL,
+class VPseudoILoadNoMaskTU<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
                            bit Ordered, bit EarlyClobber>:
       Pseudo<(outs RetClass:$rd),
              (ins RetClass:$dest, GPRMem:$rs1, IdxClass:$rs2, AVL:$vl,
@@ -605,7 +605,7 @@ class VPseudoILoadNoMaskTU<RVRegisterClass RetClass, RVRegisterClass IdxClass, i
   let Constraints = !if(!eq(EarlyClobber, 1), "@earlyclobber $rd, $rd = $dest", "$rd = $dest");
 }
 
-class VPseudoILoadMask<RVRegisterClass RetClass, RVRegisterClass IdxClass, int EEW, bits<3> LMUL,
+class VPseudoILoadMask<VReg RetClass, VReg IdxClass, int EEW, bits<3> LMUL,
                        bit Ordered, bit EarlyClobber>:
       Pseudo<(outs VRNoV0:$rd),
               (ins VRNoV0:$merge,
@@ -624,7 +624,7 @@ class VPseudoILoadMask<RVRegisterClass RetClass, RVRegisterClass IdxClass, int E
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoUSStoreNoMask<RVRegisterClass StClass, int EEW, bit DummyMask = 1>:
+class VPseudoUSStoreNoMask<VReg StClass, int EEW, bit DummyMask = 1>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -637,7 +637,7 @@ class VPseudoUSStoreNoMask<RVRegisterClass StClass, int EEW, bit DummyMask = 1>:
   let HasDummyMask = DummyMask;
 }
 
-class VPseudoUSStoreMask<RVRegisterClass StClass, int EEW>:
+class VPseudoUSStoreMask<VReg StClass, int EEW>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, VMaskOp:$vm, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -649,7 +649,7 @@ class VPseudoUSStoreMask<RVRegisterClass StClass, int EEW>:
   let HasSEWOp = 1;
 }
 
-class VPseudoSStoreNoMask<RVRegisterClass StClass, int EEW>:
+class VPseudoSStoreNoMask<VReg StClass, int EEW>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, GPR:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -662,7 +662,7 @@ class VPseudoSStoreNoMask<RVRegisterClass StClass, int EEW>:
   let HasDummyMask = 1;
 }
 
-class VPseudoSStoreMask<RVRegisterClass StClass, int EEW>:
+class VPseudoSStoreMask<VReg StClass, int EEW>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, GPR:$rs2, VMaskOp:$vm, AVL:$vl, ixlenimm:$sew),[]>,
       RISCVVPseudo,
@@ -675,7 +675,7 @@ class VPseudoSStoreMask<RVRegisterClass StClass, int EEW>:
 }
 
 // Unary instruction that is never masked so HasDummyMask=0.
-class VPseudoUnaryNoDummyMask<RVRegisterClass RetClass,
+class VPseudoUnaryNoDummyMask<VReg RetClass,
                               DAGOperand Op2Class> :
         Pseudo<(outs RetClass:$rd),
                (ins Op2Class:$rs1, AVL:$vl, ixlenimm:$sew), []>,
@@ -687,7 +687,7 @@ class VPseudoUnaryNoDummyMask<RVRegisterClass RetClass,
   let HasSEWOp = 1;
 }
 
-class VPseudoUnaryNoDummyMaskTU<RVRegisterClass RetClass,
+class VPseudoUnaryNoDummyMaskTU<VReg RetClass,
                                 DAGOperand Op2Class> :
         Pseudo<(outs RetClass:$rd),
                (ins RetClass:$dest, Op2Class:$rs1, AVL:$vl, ixlenimm:$sew), []>,
@@ -701,7 +701,7 @@ class VPseudoUnaryNoDummyMaskTU<RVRegisterClass RetClass,
   let Constraints = "$rd = $dest";
 }
 
-class VPseudoNullaryNoMask<RVRegisterClass RegClass>:
+class VPseudoNullaryNoMask<VReg RegClass>:
       Pseudo<(outs RegClass:$rd),
              (ins AVL:$vl, ixlenimm:$sew),
              []>, RISCVVPseudo {
@@ -713,7 +713,7 @@ class VPseudoNullaryNoMask<RVRegisterClass RegClass>:
   let HasDummyMask = 1;
 }
 
-class VPseudoNullaryNoMaskTU<RVRegisterClass RegClass>:
+class VPseudoNullaryNoMaskTU<VReg RegClass>:
       Pseudo<(outs RegClass:$rd),
              (ins RegClass:$merge, AVL:$vl, ixlenimm:$sew),
              []>, RISCVVPseudo {
@@ -727,7 +727,7 @@ class VPseudoNullaryNoMaskTU<RVRegisterClass RegClass>:
   let HasMergeOp = 1;
 }
 
-class VPseudoNullaryMask<RVRegisterClass RegClass>:
+class VPseudoNullaryMask<VReg RegClass>:
       Pseudo<(outs VRNoV0:$rd),
              (ins VRNoV0:$merge, VMaskOp:$vm, AVL:$vl,
               ixlenimm:$sew, ixlenimm:$policy), []>, RISCVVPseudo {
@@ -757,8 +757,8 @@ class VPseudoNullaryPseudoM<string BaseInst>
   let BaseInstr = !cast<Instruction>(BaseInst);
 }
 
-// RetClass could be GPR or RVRegisterClass.
-class VPseudoUnaryNoMask<DAGOperand RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+// RetClass could be GPR or VReg.
+class VPseudoUnaryNoMask<DAGOperand RetClass, VReg OpClass, string Constraint = ""> :
         Pseudo<(outs RetClass:$rd),
                (ins OpClass:$rs2, AVL:$vl, ixlenimm:$sew), []>,
         RISCVVPseudo {
@@ -771,8 +771,8 @@ class VPseudoUnaryNoMask<DAGOperand RetClass, RVRegisterClass OpClass, string Co
   let HasDummyMask = 1;
 }
 
-// RetClass could be GPR or RVRegisterClass.
-class VPseudoUnaryNoMaskTU<DAGOperand RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+// RetClass could be GPR or VReg.
+class VPseudoUnaryNoMaskTU<DAGOperand RetClass, VReg OpClass, string Constraint = ""> :
       Pseudo<(outs RetClass:$rd),
         (ins RetClass:$merge, OpClass:$rs2, AVL:$vl, ixlenimm:$sew), []>,
         RISCVVPseudo {
@@ -786,7 +786,7 @@ class VPseudoUnaryNoMaskTU<DAGOperand RetClass, RVRegisterClass OpClass, string 
   let HasMergeOp = 1;
 }
 
-class VPseudoUnaryMask<RVRegisterClass RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+class VPseudoUnaryMask<VReg RetClass, VReg OpClass, string Constraint = ""> :
         Pseudo<(outs VRNoV0:$rd),
                (ins VRNoV0:$merge, OpClass:$rs2,
                     VMaskOp:$vm, AVL:$vl, ixlenimm:$sew), []>,
@@ -801,7 +801,7 @@ class VPseudoUnaryMask<RVRegisterClass RetClass, RVRegisterClass OpClass, string
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoUnaryMaskTA<RVRegisterClass RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+class VPseudoUnaryMaskTA<VReg RetClass, VReg OpClass, string Constraint = ""> :
         Pseudo<(outs VRNoV0:$rd),
                (ins VRNoV0:$merge, OpClass:$rs2,
                     VMaskOp:$vm, AVL:$vl, ixlenimm:$sew, ixlenimm:$policy), []>,
@@ -817,7 +817,7 @@ class VPseudoUnaryMaskTA<RVRegisterClass RetClass, RVRegisterClass OpClass, stri
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoUnaryMaskTA_NoExcept<RVRegisterClass RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+class VPseudoUnaryMaskTA_NoExcept<VReg RetClass, VReg OpClass, string Constraint = ""> :
         Pseudo<(outs VRNoV0:$rd),
                (ins VRNoV0:$merge, OpClass:$rs2, VMaskOp:$vm,
                     AVL:$vl, ixlenimm:$sew, ixlenimm:$policy), []> {
@@ -833,7 +833,7 @@ class VPseudoUnaryMaskTA_NoExcept<RVRegisterClass RetClass, RVRegisterClass OpCl
   let usesCustomInserter = 1;
 }
 
-class VPseudoUnaryMaskTA_FRM<RVRegisterClass RetClass, RVRegisterClass OpClass, string Constraint = ""> :
+class VPseudoUnaryMaskTA_FRM<VReg RetClass, VReg OpClass, string Constraint = ""> :
         Pseudo<(outs VRNoV0:$rd),
                (ins VRNoV0:$merge, OpClass:$rs2,
                     VMaskOp:$vm, ixlenimm:$frm, AVL:$vl, ixlenimm:$sew, ixlenimm:$policy), []> {
@@ -862,8 +862,8 @@ class VPseudoMaskUnarySOutMask:
 }
 
 // Mask can be V0~V31
-class VPseudoUnaryAnyMask<RVRegisterClass RetClass,
-                          RVRegisterClass Op1Class> :
+class VPseudoUnaryAnyMask<VReg RetClass,
+                          VReg Op1Class> :
       Pseudo<(outs RetClass:$rd),
              (ins RetClass:$merge,
                   Op1Class:$rs2,
@@ -879,8 +879,8 @@ class VPseudoUnaryAnyMask<RVRegisterClass RetClass,
   let HasMergeOp = 1;
 }
 
-class VPseudoBinaryNoMask<RVRegisterClass RetClass,
-                          RVRegisterClass Op1Class,
+class VPseudoBinaryNoMask<VReg RetClass,
+                          VReg Op1Class,
                           DAGOperand Op2Class,
                           string Constraint,
                           int DummyMask = 1> :
@@ -896,8 +896,8 @@ class VPseudoBinaryNoMask<RVRegisterClass RetClass,
   let HasDummyMask = DummyMask;
 }
 
-class VPseudoBinaryNoMaskTU<RVRegisterClass RetClass,
-                            RVRegisterClass Op1Class,
+class VPseudoBinaryNoMaskTU<VReg RetClass,
+                            VReg Op1Class,
                             DAGOperand Op2Class,
                             string Constraint> :
         Pseudo<(outs RetClass:$rd),
@@ -916,7 +916,7 @@ class VPseudoBinaryNoMaskTU<RVRegisterClass RetClass,
 // Special version of VPseudoBinaryNoMask where we pretend the first source is
 // tied to the destination.
 // This allows maskedoff and rs2 to be the same register.
-class VPseudoTiedBinaryNoMask<RVRegisterClass RetClass,
+class VPseudoTiedBinaryNoMask<VReg RetClass,
                               DAGOperand Op2Class,
                               string Constraint> :
         Pseudo<(outs RetClass:$rd),
@@ -934,7 +934,7 @@ class VPseudoTiedBinaryNoMask<RVRegisterClass RetClass,
   let isConvertibleToThreeAddress = 1;
 }
 
-class VPseudoIStoreNoMask<RVRegisterClass StClass, RVRegisterClass IdxClass, int EEW, bits<3> LMUL,
+class VPseudoIStoreNoMask<VReg StClass, VReg IdxClass, int EEW, bits<3> LMUL,
                           bit Ordered>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, IdxClass:$rs2, AVL:$vl, ixlenimm:$sew),[]>,
@@ -948,7 +948,7 @@ class VPseudoIStoreNoMask<RVRegisterClass StClass, RVRegisterClass IdxClass, int
   let HasDummyMask = 1;
 }
 
-class VPseudoIStoreMask<RVRegisterClass StClass, RVRegisterClass IdxClass, int EEW, bits<3> LMUL,
+class VPseudoIStoreMask<VReg StClass, VReg IdxClass, int EEW, bits<3> LMUL,
                         bit Ordered>:
       Pseudo<(outs),
               (ins StClass:$rd, GPRMem:$rs1, IdxClass:$rs2, VMaskOp:$vm, AVL:$vl, ixlenimm:$sew),[]>,
@@ -961,8 +961,8 @@ class VPseudoIStoreMask<RVRegisterClass StClass, RVRegisterClass IdxClass, int E
   let HasSEWOp = 1;
 }
 
-class VPseudoBinaryMask<RVRegisterClass RetClass,
-                        RegisterClass Op1Class,
+class VPseudoBinaryMask<VReg RetClass,
+                        RVRegisterClass Op1Class,
                         DAGOperand Op2Class,
                         string Constraint> :
         Pseudo<(outs VRNoV0:$rd),
@@ -979,8 +979,8 @@ class VPseudoBinaryMask<RVRegisterClass RetClass,
   let HasMergeOp = 1;
 }
 
-class VPseudoBinaryMaskPolicy<RVRegisterClass RetClass,
-                              RegisterClass Op1Class,
+class VPseudoBinaryMaskPolicy<VReg RetClass,
+                              RVRegisterClass Op1Class,
                               DAGOperand Op2Class,
                               string Constraint> :
         Pseudo<(outs VRNoV0:$rd),
@@ -1000,8 +1000,8 @@ class VPseudoBinaryMaskPolicy<RVRegisterClass RetClass,
 }
 
 // Like VPseudoBinaryMask, but output can be V0.
-class VPseudoBinaryMOutMask<RVRegisterClass RetClass,
-                            RegisterClass Op1Class,
+class VPseudoBinaryMOutMask<VReg RetClass,
+                            RVRegisterClass Op1Class,
                             DAGOperand Op2Class,
                             string Constraint> :
         Pseudo<(outs RetClass:$rd),
@@ -1022,7 +1022,7 @@ class VPseudoBinaryMOutMask<RVRegisterClass RetClass,
 // Special version of VPseudoBinaryMask where we pretend the first source is
 // tied to the destination so we can workaround the earlyclobber constraint.
 // This allows maskedoff and rs2 to be the same register.
-class VPseudoTiedBinaryMask<RVRegisterClass RetClass,
+class VPseudoTiedBinaryMask<VReg RetClass,
                             DAGOperand Op2Class,
                             string Constraint> :
         Pseudo<(outs VRNoV0:$rd),
@@ -1041,8 +1041,8 @@ class VPseudoTiedBinaryMask<RVRegisterClass RetClass,
   let UsesMaskPolicy = 1;
 }
 
-class VPseudoBinaryCarryIn<RVRegisterClass RetClass,
-                           RVRegisterClass Op1Class,
+class VPseudoBinaryCarryIn<VReg RetClass,
+                           VReg Op1Class,
                            DAGOperand Op2Class,
                            LMULInfo MInfo,
                            bit CarryIn,
@@ -1063,8 +1063,8 @@ class VPseudoBinaryCarryIn<RVRegisterClass RetClass,
   let VLMul = MInfo.value;
 }
 
-class VPseudoTiedBinaryCarryIn<RVRegisterClass RetClass,
-                               RVRegisterClass Op1Class,
+class VPseudoTiedBinaryCarryIn<VReg RetClass,
+                               VReg Op1Class,
                                DAGOperand Op2Class,
                                LMULInfo MInfo,
                                bit CarryIn,
@@ -1086,8 +1086,8 @@ class VPseudoTiedBinaryCarryIn<RVRegisterClass RetClass,
   let VLMul = MInfo.value;
 }
 
-class VPseudoTernaryNoMask<RVRegisterClass RetClass,
-                           RegisterClass Op1Class,
+class VPseudoTernaryNoMask<VReg RetClass,
+                           RVRegisterClass Op1Class,
                            DAGOperand Op2Class,
                            string Constraint> :
         Pseudo<(outs RetClass:$rd),
@@ -1105,8 +1105,8 @@ class VPseudoTernaryNoMask<RVRegisterClass RetClass,
   let HasDummyMask = 1;
 }
 
-class VPseudoTernaryNoMaskWithPolicy<RVRegisterClass RetClass,
-                                     RegisterClass Op1Class,
+class VPseudoTernaryNoMaskWithPolicy<VReg RetClass,
+                                     RVRegisterClass Op1Class,
                                      DAGOperand Op2Class,
                                      string Constraint> :
         Pseudo<(outs RetClass:$rd),
@@ -1382,8 +1382,8 @@ multiclass VPseudoVCPR_V {
   }
 }
 
-multiclass VPseudoBinary<RVRegisterClass RetClass,
-                         RVRegisterClass Op1Class,
+multiclass VPseudoBinary<VReg RetClass,
+                         VReg Op1Class,
                          DAGOperand Op2Class,
                          LMULInfo MInfo,
                          string Constraint = ""> {
@@ -1398,8 +1398,8 @@ multiclass VPseudoBinary<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoBinaryM<RVRegisterClass RetClass,
-                          RVRegisterClass Op1Class,
+multiclass VPseudoBinaryM<VReg RetClass,
+                          VReg Op1Class,
                           DAGOperand Op2Class,
                           LMULInfo MInfo,
                           string Constraint = ""> {
@@ -1413,8 +1413,8 @@ multiclass VPseudoBinaryM<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoBinaryEmul<RVRegisterClass RetClass,
-                             RVRegisterClass Op1Class,
+multiclass VPseudoBinaryEmul<VReg RetClass,
+                             VReg Op1Class,
                              DAGOperand Op2Class,
                              LMULInfo lmul,
                              LMULInfo emul,
@@ -1430,7 +1430,7 @@ multiclass VPseudoBinaryEmul<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoTiedBinary<RVRegisterClass RetClass,
+multiclass VPseudoTiedBinary<VReg RetClass,
                              DAGOperand Op2Class,
                              LMULInfo MInfo,
                              string Constraint = ""> {
@@ -2518,8 +2518,8 @@ multiclass VPseudoVNSHT_WV_WX_WI {
   }
 }
 
-multiclass VPseudoTernary<RVRegisterClass RetClass,
-                          RegisterClass Op1Class,
+multiclass VPseudoTernary<VReg RetClass,
+                          RVRegisterClass Op1Class,
                           DAGOperand Op2Class,
                           LMULInfo MInfo,
                           string Constraint = ""> {
@@ -2529,8 +2529,8 @@ multiclass VPseudoTernary<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoTernaryNoMaskNoPolicy<RVRegisterClass RetClass,
-                                        RegisterClass Op1Class,
+multiclass VPseudoTernaryNoMaskNoPolicy<VReg RetClass,
+                                        RVRegisterClass Op1Class,
                                         DAGOperand Op2Class,
                                         LMULInfo MInfo,
                                         string Constraint = ""> {
@@ -2542,8 +2542,8 @@ multiclass VPseudoTernaryNoMaskNoPolicy<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoTernaryWithPolicy<RVRegisterClass RetClass,
-                                    RegisterClass Op1Class,
+multiclass VPseudoTernaryWithPolicy<VReg RetClass,
+                                    RVRegisterClass Op1Class,
                                     DAGOperand Op2Class,
                                     LMULInfo MInfo,
                                     string Constraint = "",
@@ -2836,8 +2836,8 @@ multiclass VPseudoVFWRED_VS {
   }
 }
 
-multiclass VPseudoConversion<RVRegisterClass RetClass,
-                             RVRegisterClass Op1Class,
+multiclass VPseudoConversion<VReg RetClass,
+                             VReg Op1Class,
                              LMULInfo MInfo,
                              string Constraint = ""> {
   let VLMul = MInfo.value in {
@@ -2849,8 +2849,8 @@ multiclass VPseudoConversion<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoConversionRM<RVRegisterClass RetClass,
-                               RVRegisterClass Op1Class,
+multiclass VPseudoConversionRM<VReg RetClass,
+                               VReg Op1Class,
                                LMULInfo MInfo,
                                string Constraint = ""> {
   let VLMul = MInfo.value in {
@@ -2859,8 +2859,8 @@ multiclass VPseudoConversionRM<RVRegisterClass RetClass,
   }
 }
 
-multiclass VPseudoConversionNoExcept<RVRegisterClass RetClass,
-                                     RVRegisterClass Op1Class,
+multiclass VPseudoConversionNoExcept<VReg RetClass,
+                                     VReg Op1Class,
                                      LMULInfo MInfo,
                                      string Constraint = ""> {
   let VLMul = MInfo.value in {
@@ -3001,7 +3001,7 @@ class VPatUnaryNoMask<string intrinsic_name,
                       ValueType op2_type,
                       int sew,
                       LMULInfo vlmul,
-                      RVRegisterClass op2_reg_class> :
+                      VReg op2_reg_class> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type undef),
                    (op2_type op2_reg_class:$rs2),
@@ -3017,8 +3017,8 @@ class VPatUnaryNoMaskRoundingMode<string intrinsic_name,
                                   ValueType op2_type,
                                   int log2sew,
                                   LMULInfo vlmul,
-                                  RVRegisterClass result_reg_class,
-                                  RVRegisterClass op2_reg_class,
+                                  VReg result_reg_class,
+                                  VReg op2_reg_class,
                                   bit isSEWAware = 0> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type result_reg_class:$passthru),
@@ -3041,8 +3041,8 @@ class VPatUnaryNoMaskTU<string intrinsic_name,
                         ValueType op2_type,
                         int sew,
                         LMULInfo vlmul,
-                        RVRegisterClass result_reg_class,
-                        RVRegisterClass op2_reg_class> :
+                        VReg result_reg_class,
+                        VReg op2_reg_class> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type result_reg_class:$merge),
                    (op2_type op2_reg_class:$rs2),
@@ -3060,8 +3060,8 @@ class VPatUnaryMask<string intrinsic_name,
                     ValueType mask_type,
                     int sew,
                     LMULInfo vlmul,
-                    RVRegisterClass result_reg_class,
-                    RVRegisterClass op2_reg_class> :
+                    VReg result_reg_class,
+                    VReg op2_reg_class> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
                    (op2_type op2_reg_class:$rs2),
@@ -3080,8 +3080,8 @@ class VPatUnaryMaskRoundingMode<string intrinsic_name,
                                 ValueType mask_type,
                                 int log2sew,
                                 LMULInfo vlmul,
-                                RVRegisterClass result_reg_class,
-                                RVRegisterClass op2_reg_class,
+                                VReg result_reg_class,
+                                VReg op2_reg_class,
                                 bit isSEWAware = 0> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$passthru),
@@ -3107,8 +3107,8 @@ class VPatUnaryMaskTA<string intrinsic_name,
                       ValueType mask_type,
                       int sew,
                       LMULInfo vlmul,
-                      RVRegisterClass result_reg_class,
-                      RVRegisterClass op2_reg_class> :
+                      VReg result_reg_class,
+                      VReg op2_reg_class> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
                    (op2_type op2_reg_class:$rs2),
@@ -3150,8 +3150,8 @@ class VPatUnaryAnyMask<string intrinsic,
                        ValueType mask_type,
                        int sew,
                        LMULInfo vlmul,
-                       RVRegisterClass result_reg_class,
-                       RVRegisterClass op1_reg_class> :
+                       VReg result_reg_class,
+                       VReg op1_reg_class> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic)
                    (result_type result_reg_class:$merge),
                    (op1_type op1_reg_class:$rs1),
@@ -3169,7 +3169,7 @@ class VPatBinaryM<string intrinsic_name,
                   ValueType op1_type,
                   ValueType op2_type,
                   int sew,
-                  RVRegisterClass op1_reg_class,
+                  VReg op1_reg_class,
                   DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (op1_type op1_reg_class:$rs1),
@@ -3186,7 +3186,7 @@ class VPatBinaryNoMaskTA<string intrinsic_name,
                          ValueType op1_type,
                          ValueType op2_type,
                          int sew,
-                         RVRegisterClass op1_reg_class,
+                         VReg op1_reg_class,
                          DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type (undef)),
@@ -3204,8 +3204,8 @@ class VPatBinaryNoMaskTU<string intrinsic_name,
                          ValueType op1_type,
                          ValueType op2_type,
                          int sew,
-                         RVRegisterClass result_reg_class,
-                         RVRegisterClass op1_reg_class,
+                         VReg result_reg_class,
+                         VReg op1_reg_class,
                          DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type result_reg_class:$merge),
@@ -3225,7 +3225,7 @@ class VPatBinaryNoMaskSwapped<string intrinsic_name,
                               ValueType op1_type,
                               ValueType op2_type,
                               int sew,
-                              RVRegisterClass op1_reg_class,
+                              VReg op1_reg_class,
                               DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (op2_type op2_kind:$rs2),
@@ -3243,8 +3243,8 @@ class VPatBinaryMask<string intrinsic_name,
                      ValueType op2_type,
                      ValueType mask_type,
                      int sew,
-                     RVRegisterClass result_reg_class,
-                     RVRegisterClass op1_reg_class,
+                     VReg result_reg_class,
+                     VReg op1_reg_class,
                      DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
@@ -3265,8 +3265,8 @@ class VPatBinaryMaskTA<string intrinsic_name,
                        ValueType op2_type,
                        ValueType mask_type,
                        int sew,
-                       RVRegisterClass result_reg_class,
-                       RVRegisterClass op1_reg_class,
+                       VReg result_reg_class,
+                       VReg op1_reg_class,
                        DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
@@ -3288,8 +3288,8 @@ class VPatBinaryMaskSwapped<string intrinsic_name,
                             ValueType op2_type,
                             ValueType mask_type,
                             int sew,
-                            RVRegisterClass result_reg_class,
-                            RVRegisterClass op1_reg_class,
+                            VReg result_reg_class,
+                            VReg op1_reg_class,
                             DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
@@ -3308,7 +3308,7 @@ class VPatTiedBinaryNoMask<string intrinsic_name,
                            ValueType result_type,
                            ValueType op2_type,
                            int sew,
-                           RVRegisterClass result_reg_class,
+                           VReg result_reg_class,
                            DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type (undef)),
@@ -3325,7 +3325,7 @@ class VPatTiedBinaryNoMaskTU<string intrinsic_name,
                              ValueType result_type,
                              ValueType op2_type,
                              int sew,
-                             RVRegisterClass result_reg_class,
+                             VReg result_reg_class,
                              DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name)
                    (result_type result_reg_class:$merge),
@@ -3343,7 +3343,7 @@ class VPatTiedBinaryMask<string intrinsic_name,
                          ValueType op2_type,
                          ValueType mask_type,
                          int sew,
-                         RVRegisterClass result_reg_class,
+                         VReg result_reg_class,
                          DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic_name#"_mask")
                    (result_type result_reg_class:$merge),
@@ -3364,8 +3364,8 @@ class VPatTernaryNoMask<string intrinsic,
                         ValueType op2_type,
                         int sew,
                         LMULInfo vlmul,
-                        RVRegisterClass result_reg_class,
-                        RegisterClass op1_reg_class,
+                        VReg result_reg_class,
+                        RVRegisterClass op1_reg_class,
                         DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic)
                     (result_type result_reg_class:$rs3),
@@ -3386,8 +3386,8 @@ class VPatTernaryNoMaskWithPolicy<string intrinsic,
                                   ValueType op2_type,
                                   int sew,
                                   LMULInfo vlmul,
-                                  RVRegisterClass result_reg_class,
-                                  RegisterClass op1_reg_class,
+                                  VReg result_reg_class,
+                                  RVRegisterClass op1_reg_class,
                                   DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic)
                     (result_type result_reg_class:$rs3),
@@ -3409,8 +3409,8 @@ class VPatTernaryMask<string intrinsic,
                       ValueType mask_type,
                       int sew,
                       LMULInfo vlmul,
-                      RVRegisterClass result_reg_class,
-                      RegisterClass op1_reg_class,
+                      VReg result_reg_class,
+                      RVRegisterClass op1_reg_class,
                       DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic#"_mask")
                     (result_type result_reg_class:$rs3),
@@ -3434,8 +3434,8 @@ class VPatTernaryMaskPolicy<string intrinsic,
                             ValueType mask_type,
                             int sew,
                             LMULInfo vlmul,
-                            RVRegisterClass result_reg_class,
-                            RegisterClass op1_reg_class,
+                            VReg result_reg_class,
+                            RVRegisterClass op1_reg_class,
                             DAGOperand op2_kind> :
   Pat<(result_type (!cast<Intrinsic>(intrinsic#"_mask")
                     (result_type result_reg_class:$rs3),
@@ -3567,8 +3567,8 @@ multiclass VPatBinaryM<string intrinsic,
                       ValueType op2_type,
                       ValueType mask_type,
                       int sew,
-                      RVRegisterClass result_reg_class,
-                      RVRegisterClass op1_reg_class,
+                      VReg result_reg_class,
+                      VReg op1_reg_class,
                       DAGOperand op2_kind>
 {
   def : VPatBinaryM<intrinsic, inst, result_type, op1_type, op2_type,
@@ -3585,8 +3585,8 @@ multiclass VPatBinaryTA<string intrinsic,
                         ValueType op2_type,
                         ValueType mask_type,
                         int sew,
-                        RVRegisterClass result_reg_class,
-                        RVRegisterClass op1_reg_class,
+                        VReg result_reg_class,
+                        VReg op1_reg_class,
                         DAGOperand op2_kind>
 {
   def : VPatBinaryNoMaskTA<intrinsic, inst, result_type, op1_type, op2_type,
@@ -3605,8 +3605,8 @@ multiclass VPatBinarySwapped<string intrinsic,
                       ValueType op2_type,
                       ValueType mask_type,
                       int sew,
-                      RVRegisterClass result_reg_class,
-                      RVRegisterClass op1_reg_class,
+                      VReg result_reg_class,
+                      VReg op1_reg_class,
                       DAGOperand op2_kind>
 {
   def : VPatBinaryNoMaskSwapped<intrinsic, inst, result_type, op1_type, op2_type,
@@ -3625,8 +3625,8 @@ multiclass VPatBinaryCarryInTAIL<string intrinsic,
                                  ValueType mask_type,
                                  int sew,
                                  LMULInfo vlmul,
-                                 RVRegisterClass result_reg_class,
-                                 RVRegisterClass op1_reg_class,
+                                 VReg result_reg_class,
+                                 VReg op1_reg_class,
                                  DAGOperand op2_kind>
 {
   def : Pat<(result_type (!cast<Intrinsic>(intrinsic)
@@ -3661,7 +3661,7 @@ multiclass VPatBinaryCarryIn<string intrinsic,
                              ValueType mask_type,
                              int sew,
                              LMULInfo vlmul,
-                             RVRegisterClass op1_reg_class,
+                             VReg op1_reg_class,
                              DAGOperand op2_kind>
 {
   def : Pat<(result_type (!cast<Intrinsic>(intrinsic)
@@ -3683,7 +3683,7 @@ multiclass VPatBinaryMaskOut<string intrinsic,
                              ValueType op2_type,
                              int sew,
                              LMULInfo vlmul,
-                             RVRegisterClass op1_reg_class,
+                             VReg op1_reg_class,
                              DAGOperand op2_kind>
 {
   def : Pat<(result_type (!cast<Intrinsic>(intrinsic)
@@ -3704,8 +3704,8 @@ multiclass VPatConversionTA<string intrinsic,
                             ValueType mask_type,
                             int sew,
                             LMULInfo vlmul,
-                            RVRegisterClass result_reg_class,
-                            RVRegisterClass op1_reg_class>
+                            VReg result_reg_class,
+                            VReg op1_reg_class>
 {
   def : VPatUnaryNoMask<intrinsic, inst, kind, result_type, op1_type,
                         sew, vlmul, op1_reg_class>;
@@ -3723,8 +3723,8 @@ multiclass VPatConversionRoundingMode<string intrinsic,
                                       ValueType mask_type,
                                       int log2sew,
                                       LMULInfo vlmul,
-                                      RVRegisterClass result_reg_class,
-                                      RVRegisterClass op1_reg_class,
+                                      VReg result_reg_class,
+                                      VReg op1_reg_class,
                                       bit isSEWAware = 0> {
   def : VPatUnaryNoMaskRoundingMode<intrinsic, inst, kind, result_type, op1_type,
                                     log2sew, vlmul, result_reg_class,
@@ -4101,8 +4101,8 @@ multiclass VPatTernary<string intrinsic,
                        ValueType mask_type,
                        int sew,
                        LMULInfo vlmul,
-                       RVRegisterClass result_reg_class,
-                       RegisterClass op1_reg_class,
+                       VReg result_reg_class,
+                       RVRegisterClass op1_reg_class,
                        DAGOperand op2_kind> {
   def : VPatTernaryNoMask<intrinsic, inst, kind, result_type, op1_type, op2_type,
                           sew, vlmul, result_reg_class, op1_reg_class,
@@ -4121,8 +4121,8 @@ multiclass VPatTernaryNoMaskNoPolicy<string intrinsic,
                                      ValueType mask_type,
                                      int sew,
                                      LMULInfo vlmul,
-                                     RVRegisterClass result_reg_class,
-                                     RegisterClass op1_reg_class,
+                                     VReg result_reg_class,
+                                     RVRegisterClass op1_reg_class,
                                      DAGOperand op2_kind> {
   def : VPatTernaryNoMask<intrinsic, inst, kind, result_type, op1_type, op2_type,
                           sew, vlmul, result_reg_class, op1_reg_class,
@@ -4141,8 +4141,8 @@ multiclass VPatTernaryWithPolicy<string intrinsic,
                                  ValueType mask_type,
                                  int sew,
                                  LMULInfo vlmul,
-                                 RVRegisterClass result_reg_class,
-                                 RegisterClass op1_reg_class,
+                                 VReg result_reg_class,
+                                 RVRegisterClass op1_reg_class,
                                  DAGOperand op2_kind> {
   def : VPatTernaryNoMaskWithPolicy<intrinsic, inst, kind, result_type, op1_type,
                                     op2_type, sew, vlmul, result_reg_class,

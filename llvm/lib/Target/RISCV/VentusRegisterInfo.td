@@ -443,9 +443,26 @@ let RegAltNameIndices = [ABIRegAltName] in {
 
 def RPC : RISCVReg<0, "rpc", ["rpc"]>;
 
-def VCSR : RegisterClass<"RISCV", [XLenVT], 32,
-                          (add VTYPE, VL, VLENB)> {
+def VCSR : RVRegisterClass<"RISCV", [XLenVT], 32,
+                              (add VTYPE, VL, VLENB)> {
   let RegInfos = XLenRI;
+  let isAllocatable = 0;
+}
+/***********************************************************************************************
+ * 当前问题点 2025.5.19 Lee
+ **********************************************************************************************/
+class VReg<list<ValueType> regTypes, dag regList, int Vlmul, int nf = 1>
+    : RVRegisterClass<"RISCV", regTypes,
+                         64, // The maximum supported ELEN is 64.
+                         regList> {
+  let IsVRegClass = 1;
+  let VLMul = Vlmul;
+  let NF = nf;
+
+  let Size = !mul(VLMul, NF, 64);
+  let CopyCost = !mul(VLMul, NF);
+  // Prefer to allocate high LMUL registers first.
+  let AllocationPriority = !if(!gt(Vlmul, 1), Vlmul, 0);
 }
 
 let RegInfos = XLenRI in {
@@ -720,35 +737,32 @@ defvar VM8VTs = [vint8m8_t, vint16m8_t, vint32m8_t, vint64m8_t,
 // allocation of higher lmul register groups while still putting v0 last in the
 // allocation order.
 
-def VR : RVRegisterClass<"RISCV",
-                         !listconcat(VM1VTs, VMaskVTs),
-                         64,
-                         (add (sequence "V%u", 8, 31), (sequence "V%u", 7, 0))> {
-  let IsVGPR = 1;
-}
+def VR : VReg<"RISCV", !listconcat(VM1VTs, VMaskVTs),
+              (add (sequence "V%u", 8, 31),
+                   (sequence "V%u", 7, 0)), 1>;
 
-def VRNoV0 : RVRegisterClass<"RISCV",
+def VRNoV0 : VReg<"RISCV",
                              !listconcat(VM1VTs, VMaskVTs),
                              64,
                              (sub VR, V0)> {
   let IsVGPR = 1;
 }
 
-def VRM2 : RVRegisterClass<"RISCV", VM2VTs, 64, (add (sequence "V%uM2", 8, 31, 2),
+def VRM2 : VReg<"RISCV", VM2VTs, 64, (add (sequence "V%uM2", 8, 31, 2),
                              (sequence "V%uM2", 6, 0, 2))>;
 
-def VRM2NoV0 : RVRegisterClass<"RISCV", VM2VTs, 64, (sub VRM2, V0M2)>;
+def VRM2NoV0 : VReg<"RISCV", VM2VTs, 64, (sub VRM2, V0M2)>;
 
-def VRM4 : RVRegisterClass<"RISCV", VM4VTs, 64, (add V8M4, V12M4, V16M4, V20M4,
+def VRM4 : VReg<"RISCV", VM4VTs, 64, (add V8M4, V12M4, V16M4, V20M4,
                              V24M4, V28M4, V4M4, V0M4)>;
 
-def VRM4NoV0 : RVRegisterClass<"RISCV", VM4VTs, 64, (sub VRM4, V0M4)>;
+def VRM4NoV0 : VReg<"RISCV", VM4VTs, 64, (sub VRM4, V0M4)>;
 
-def VRM8 : RVRegisterClass<"RISCV", VM8VTs, 64, (add V8M8, V16M8, V24M8, V0M8)>;
+def VRM8 : VReg<"RISCV", VM8VTs, 64, (add V8M8, V16M8, V24M8, V0M8)>;
 
-def VRM8NoV0 : RVRegisterClass<"RISCV", VM8VTs, 64, (sub VRM8, V0M8)>;
+def VRM8NoV0 : VReg<"RISCV", VM8VTs, 64, (sub VRM8, V0M8)>;
 
-def VMV0 : RVRegisterClass<"RISCV", VMaskVTs, 64, (add V0)>;
+def VMV0 : VReg<"RISCV", VMaskVTs, 64, (add V0)>;
 
 def VMaskAsmOperand : AsmOperandClass {
   let Name = "RVVMaskRegOpOperand";
