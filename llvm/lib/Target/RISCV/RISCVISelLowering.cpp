@@ -163,6 +163,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     addRegisterClass(MVT::i32, &RISCV::VGPRRegClass);
 
     addRegisterClass(MVT::f32, &RISCV::VGPRRegClass);
+
+    if (Subtarget.hasVInstructionsF16Minimal()) {
+      addRegisterClass(MVT::f16, &RISCV::VGPRRegClass);
+    }
   }
 
   // Compute derived properties from the register classes.
@@ -727,6 +731,67 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         ISD::SETGT,  ISD::SETOGT, ISD::SETGE,  ISD::SETOGE,
     };
 
+    // TODO: support more ops.
+    static const unsigned ZvfhminZvfbfminPromoteOps[] = {
+        ISD::FMINNUM,
+        ISD::FMAXNUM,
+        // ISD::FMINIMUMNUM,
+        // ISD::FMAXIMUMNUM,
+        ISD::FADD,
+        ISD::FSUB,
+        ISD::FMUL,
+        ISD::FMA,
+        ISD::FDIV,
+        ISD::FSQRT,
+        ISD::FCEIL,
+        ISD::FTRUNC,
+        ISD::FFLOOR,
+        ISD::FROUND,
+        ISD::FROUNDEVEN,
+        ISD::FRINT,
+        ISD::FNEARBYINT,
+        ISD::IS_FPCLASS,
+        ISD::SETCC,
+        ISD::FMAXIMUM,
+        ISD::FMINIMUM,
+        ISD::STRICT_FADD,
+        ISD::STRICT_FSUB,
+        ISD::STRICT_FMUL,
+        ISD::STRICT_FDIV,
+        ISD::STRICT_FSQRT,
+        ISD::STRICT_FMA,
+        ISD::VECREDUCE_FMIN,
+        ISD::VECREDUCE_FMAX,
+        // ISD::VECREDUCE_FMINIMUM,
+        // ISD::VECREDUCE_FMAXIMUM
+        };
+
+    // TODO: support more vp ops.
+    static const unsigned ZvfhminZvfbfminPromoteVPOps[] = {
+        ISD::VP_FADD,
+        ISD::VP_FSUB,
+        ISD::VP_FMUL,
+        ISD::VP_FDIV,
+        ISD::VP_FMA,
+        ISD::VP_REDUCE_FMIN,
+        ISD::VP_REDUCE_FMAX,
+        ISD::VP_SQRT,
+        ISD::VP_FMINNUM,
+        ISD::VP_FMAXNUM,
+        ISD::VP_FCEIL,
+        ISD::VP_FFLOOR,
+        ISD::VP_FROUND,
+        ISD::VP_FROUNDEVEN,
+        ISD::VP_FROUNDTOZERO,
+        ISD::VP_FRINT,
+        ISD::VP_FNEARBYINT,
+        ISD::VP_SETCC,
+        // ISD::VP_FMINIMUM,
+        // ISD::VP_FMAXIMUM,
+        // ISD::VP_REDUCE_FMINIMUM,
+        // ISD::VP_REDUCE_FMAXIMUM
+        };
+
     // Sets common operation actions on RVV floating-point vector types.
     const auto SetCommonVFPActions = [&](MVT VT) {
       setOperationAction(ISD::SPLAT_VECTOR, VT, Legal);
@@ -802,6 +867,13 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         if (!isTypeLegal(VT))
           continue;
         SetCommonVFPActions(VT);
+      }
+    } else if (Subtarget.hasVInstructionsF16Minimal()) {
+      for (MVT VT : F16VecVTs) {
+        if (!isTypeLegal(VT))
+          continue;
+        setOperationAction({ISD::FP_ROUND, ISD::FP_EXTEND}, VT, Custom);
+        setOperationAction({ISD::VP_FP_ROUND, ISD::VP_FP_EXTEND}, VT, Custom);
       }
     }
 
@@ -962,6 +1034,42 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         setLoadExtAction(ISD::EXTLOAD, OtherVT, VT, Expand);
         setTruncStoreAction(VT, OtherVT, Expand);
       }
+
+      if (VT.getVectorElementType() == MVT::f16 &&
+            !Subtarget.hasVInstructionsF16()) {
+          setOperationAction(ISD::BITCAST, VT, Custom);
+          setOperationAction({ISD::VP_FP_ROUND, ISD::VP_FP_EXTEND}, VT, Custom);
+          setOperationAction(
+              {ISD::VP_MERGE, ISD::VP_SELECT, ISD::VSELECT, ISD::SELECT}, VT,
+              Custom);
+          setOperationAction({ISD::VP_SINT_TO_FP, ISD::VP_UINT_TO_FP}, VT,
+                             Custom);
+          if (Subtarget.hasStdExtZfhmin()) {
+            setOperationAction(ISD::BUILD_VECTOR, VT, Custom);
+          } else {
+            // We need to custom legalize f16 build vectors if Zfhmin isn't
+            // available.
+            setOperationAction(ISD::BUILD_VECTOR, MVT::f16, Custom);
+          }
+          setOperationAction(ISD::FNEG, VT, Expand);
+          setOperationAction(ISD::FABS, VT, Expand);
+          setOperationAction(ISD::FCOPYSIGN, VT, Expand);
+          MVT F32VecVT = MVT::getVectorVT(MVT::f32, VT.getVectorElementCount());
+          // Don't promote f16 vector operations to f32 if f32 vector type is
+          // not legal.
+          // TODO: could split the f16 vector into two vectors and do promotion.
+          if (!isTypeLegal(F32VecVT))
+            continue;
+          // Custom split nxv32[b]f16 since nxv32[b]f32 is not legal.
+          if (getLMUL(VT) == RISCVII::VLMUL::LMUL_8) {
+            setOperationAction(ZvfhminZvfbfminPromoteOps, VT, Custom);
+            setOperationAction(ZvfhminZvfbfminPromoteVPOps, VT, Custom);
+          } else {
+            MVT F32VecVT = MVT::getVectorVT(MVT::f32, VT.getVectorElementCount());
+            setOperationPromotedToType(ZvfhminZvfbfminPromoteOps, VT, F32VecVT);
+            setOperationPromotedToType(ZvfhminZvfbfminPromoteVPOps, VT, F32VecVT);
+          }
+        }
 
       // We use EXTRACT_SUBVECTOR as a "cast" from scalable to fixed.
       // setOperationAction({ISD::INSERT_SUBVECTOR, ISD::EXTRACT_SUBVECTOR}, VT,
@@ -1797,7 +1905,7 @@ static bool useRVVForFixedLengthVectorVT(MVT VT,
       return false;
     break;
   case MVT::f16:
-    if (!Subtarget.hasVInstructionsF16())
+    if (!Subtarget.hasVInstructionsF16Minimal())
       return false;
     break;
   case MVT::f32:
@@ -9498,6 +9606,45 @@ static unsigned negateFMAOpcode(unsigned Opcode, bool NegMul, bool NegAcc) {
   return Opcode;
 }
 
+static SDValue combineVFMADD_VLWithVFNEG_VL(SDNode *N, SelectionDAG &DAG) {
+  // Fold FNEG_VL into FMA opcodes.
+  // The first operand of strict-fp is chain.
+  bool IsStrict =
+      DAG.getSelectionDAGInfo().isTargetStrictFPOpcode(N->getOpcode());
+  unsigned Offset = IsStrict ? 1 : 0;
+  SDValue A = N->getOperand(0 + Offset);
+  SDValue B = N->getOperand(1 + Offset);
+  SDValue C = N->getOperand(2 + Offset);
+  SDValue Mask = N->getOperand(3 + Offset);
+  SDValue VL = N->getOperand(4 + Offset);
+
+  auto invertIfNegative = [&Mask, &VL](SDValue &V) {
+    if (V.getOpcode() == RISCVISD::FNEG_VL && V.getOperand(1) == Mask &&
+        V.getOperand(2) == VL) {
+      // Return the negated input.
+      V = V.getOperand(0);
+      return true;
+    }
+
+    return false;
+  };
+
+  bool NegA = invertIfNegative(A);
+  bool NegB = invertIfNegative(B);
+  bool NegC = invertIfNegative(C);
+
+  // If no operands are negated, we're done.
+  if (!NegA && !NegB && !NegC)
+    return SDValue();
+
+  unsigned NewOpcode = negateFMAOpcode(N->getOpcode(), NegA != NegB, NegC);
+  if (IsStrict)
+    return DAG.getNode(NewOpcode, SDLoc(N), N->getVTList(),
+                       {N->getOperand(0), A, B, C, Mask, VL});
+  return DAG.getNode(NewOpcode, SDLoc(N), N->getValueType(0), A, B, C, Mask,
+                     VL);
+}
+
 static SDValue performSRACombine(SDNode *N, SelectionDAG &DAG,
                                  const RISCVSubtarget &Subtarget) {
   assert(N->getOpcode() == ISD::SRA && "Unexpected opcode");
@@ -9666,6 +9813,39 @@ static SDValue tryDemorganOfBooleanCondition(SDValue Cond, SelectionDAG &DAG) {
 
   unsigned Opc = IsAnd ? ISD::OR : ISD::AND;
   return DAG.getNode(Opc, SDLoc(Cond), VT, Setcc, Xor.getOperand(0));
+}
+
+static SDValue performVFMADD_VLCombine(SDNode *N, SelectionDAG &DAG,
+                                       const RISCVSubtarget &Subtarget) {
+  if (SDValue V = combineVFMADD_VLWithVFNEG_VL(N, DAG))
+    return V;
+
+  if (N->getValueType(0).isScalableVector() &&
+      N->getValueType(0).getVectorElementType() == MVT::f32 &&
+      (Subtarget.hasVInstructionsF16Minimal() &&
+       !Subtarget.hasVInstructionsF16())) {
+    return SDValue();
+  }
+}
+
+static SDValue performVFMUL_VLCombine(SDNode *N, SelectionDAG &DAG,
+                                      const RISCVSubtarget &Subtarget) {
+  if (N->getValueType(0).isScalableVector() &&
+      N->getValueType(0).getVectorElementType() == MVT::f32 &&
+      (Subtarget.hasVInstructionsF16Minimal() &&
+       !Subtarget.hasVInstructionsF16())) {
+    return SDValue();
+  }
+}
+
+static SDValue performFADDSUB_VLCombine(SDNode *N, SelectionDAG &DAG,
+                                      const RISCVSubtarget &Subtarget) {
+  if (N->getValueType(0).isScalableVector() &&
+      N->getValueType(0).getVectorElementType() == MVT::f32 &&
+      (Subtarget.hasVInstructionsF16Minimal() &&
+       !Subtarget.hasVInstructionsF16())) {
+    return SDValue();
+  }
 }
 
 // Perform common combines for BR_CC and SELECT_CC condtions.
@@ -10239,6 +10419,12 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
     return DAG.getNode(NewOpcode, SDLoc(N), N->getValueType(0), A, B, C, Mask,
                        VL);
   }
+  case RISCVISD::STRICT_VFNMSUB_VL:
+    return performVFMADD_VLCombine(N, DAG, Subtarget);
+  case RISCVISD::FMUL_VL:
+    return performVFMUL_VLCombine(N, DAG, Subtarget);
+  case RISCVISD::FSUB_VL:
+    return performFADDSUB_VLCombine(N, DAG, Subtarget);
   case ISD::STORE: {
     auto *Store = cast<StoreSDNode>(N);
     SDValue Val = Store->getValue();
