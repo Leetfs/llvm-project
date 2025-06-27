@@ -796,6 +796,10 @@ def VLBI12 : VENTUS_VLI12<0b000, "vlb12">;
 def VLHUI12 : VENTUS_VLI12<0b101, "vlhu12">;
 def VLBUI12 : VENTUS_VLI12<0b100, "vlbu12">;
 def VLE16_V : VENTUS_VL<0b001, "vle16">;
+
+def PSEUDO_VLE16_GENERIC : Pseudo<(outs VGPRAll:$rd),
+                                 (ins VGPRMem:$rs1, simm11:$imm12),
+                                 [], "vle16.v", "$rd, ${imm12}($rs1)">;
 }
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in {
@@ -807,6 +811,9 @@ def VSWI12 : VENTUS_VSI12<0b110, "vsw12">;
 def VSHI12 : VENTUS_VSI12<0b011, "vsh12">;
 def VSBI12 : VENTUS_VSI12<0b111, "vsb12">;
 def VSE16_V : VENTUS_VS<0b001, "vse16">;
+def PSEUDO_VSE16_GENERIC : Pseudo<(outs),
+                                 (ins VGPRAll:$vs3, VGPRMem:$rs1, simm11:$imm12),
+                                 [], "vse16.v", "$vs3, ${imm12}($rs1)">;
 }
 
 let Predicates = [HasVInstructions] in {
@@ -1516,22 +1523,34 @@ def : Pat<(f32 (bitconvert (i32 GPR:$src))), (VMV_V_X GPR:$src)>;
 //===----------------------------------------------------------------------===//
 
 multiclass ZvfhminPatterns {
+  // 2 lanes
+  def : Pat<(v2f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
+  def : Pat<(store (v2f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
+  def : Pat<(v2f32 (fpextend (v2f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v2f16 (fpround (v2f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
+
+  // 4 lanes
+  def : Pat<(v4f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
+  def : Pat<(store (v4f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
+  def : Pat<(v4f32 (fpextend (v4f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v4f16 (fpround (v4f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
+
   // 8 lanes
-  def : Pat<(v8f16 (load VGPR:$rs1)), (VLE16_V VGPR:$rs1, 0)>;
-  def : Pat<(store (v8f16 VGPR:$vs3), VGPR:$rs1), (VSE16_V VGPR:$vs3, VGPR:$rs1, 0)>;
-  def : Pat<(v8f32 (fpextend (v8f16 VGPR:$vs2))), (VFWCVT_F_F_V VGPR:$vs2)>;
-  def : Pat<(v8f16 (fpround (v8f32 VGPR:$vs2))), (VFNCVT_F_F_W VGPR:$vs2)>;
+  def : Pat<(v8f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
+  def : Pat<(store (v8f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
+  def : Pat<(v8f32 (fpextend (v8f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v8f16 (fpround (v8f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
 
   // 16 lanes
-  def : Pat<(v16f16 (load VGPR:$rs1)), (VLE16_V VGPR:$rs1, 0)>;
-  def : Pat<(store (v16f16 VGPR:$vs3), VGPR:$rs1), (VSE16_V VGPR:$vs3, VGPR:$rs1, 0)>;
-  def : Pat<(v16f32 (fpextend (v16f16 VGPR:$vs2))), (VFWCVT_F_F_V VGPR:$vs2)>;
-  def : Pat<(v16f16 (fpround (v16f32 VGPR:$vs2))), (VFNCVT_F_F_W VGPR:$vs2)>;
+  def : Pat<(v16f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
+  def : Pat<(store (v16f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
+  def : Pat<(v16f32 (fpextend (v16f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v16f16 (fpround (v16f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
 
   // 32 lanes
-  def : Pat<(v32f16 (load VGPR:$rs1)), (VLE16_V VGPR:$rs1, 0)>;
-  def : Pat<(store (v32f16 VGPR:$vs3), VGPR:$rs1), (VSE16_V VGPR:$vs3, VGPR:$rs1, 0)>;
-  def : Pat<(v32f32 (fpextend (v32f16 VGPR:$vs2))), (VFWCVT_F_F_V VGPR:$vs2)>;
-  def : Pat<(v32f16 (fpround (v32f32 VGPR:$vs2))), (VFNCVT_F_F_W VGPR:$vs2)>;
+  def : Pat<(v32f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
+  def : Pat<(store (v32f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
+  def : Pat<(v32f32 (fpextend (v32f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v32f16 (fpround (v32f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
 }
 defm : ZvfhminPatterns;

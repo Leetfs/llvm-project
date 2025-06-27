@@ -166,9 +166,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
 
     if (Subtarget.hasVInstructionsF16Minimal()) {
       addRegisterClass(MVT::f16, &RISCV::VGPRRegClass);
-      addRegisterClass(MVT::v8f16, &RISCV::VGPRRegClass);
-      addRegisterClass(MVT::v16f16, &RISCV::VGPRRegClass);
-      addRegisterClass(MVT::v32f16, &RISCV::VGPRRegClass);
+      addRegisterClass(MVT::v2f16, &RISCV::VGPRRegClass);
+      addRegisterClass(MVT::v4f16, &RISCV::VReg_64RegClass);
+      addRegisterClass(MVT::v8f16, &RISCV::VReg_128RegClass);
+      addRegisterClass(MVT::v16f16, &RISCV::VReg_256RegClass);
     }
   }
 
@@ -879,10 +880,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         setOperationAction(ISD::FP_EXTEND, VT,  Custom);
         setOperationAction(ISD::VP_FP_ROUND, VT, Custom);
         setOperationAction(ISD::VP_FP_EXTEND, VT, Custom);
-        setOperationAction(ISD::LOAD, VT,  Custom);
-        setOperationAction(ISD::STORE, VT, Custom);
-        setOperationAction(ISD::VP_LOAD,  VT, Custom);
-        setOperationAction(ISD::VP_STORE, VT, Custom);
+        setOperationAction(ISD::LOAD, VT,  Legal);
+        setOperationAction(ISD::STORE, VT, Legal);
+        setOperationAction(ISD::VP_LOAD,  VT, Legal);
+        setOperationAction(ISD::VP_STORE, VT, Legal);
       }
     }
 

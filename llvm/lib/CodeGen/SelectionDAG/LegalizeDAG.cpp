@@ -679,6 +679,7 @@ void SelectionDAGLegalize::LegalizeLoadOps(SDNode *Node) {
 
     switch (TLI.getOperationAction(Node->getOpcode(), VT)) {
     default: llvm_unreachable("This action is not supported yet!");
+    case TargetLowering::Expand:
     case TargetLowering::Legal: {
       EVT MemVT = LD->getMemoryVT();
       const DataLayout &DL = DAG.getDataLayout();
