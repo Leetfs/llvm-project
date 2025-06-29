@@ -550,17 +550,13 @@ def VReg_512 : RVRegisterClass<"RISCV", [v16i32, v16f32], 64, (add VGPR_512)>;
 
 def VGPRAll : RVRegisterClass<"RISCV",
   // 包含所有支持的值类型
-  [i32, f32, v2i16, v2f16, i16, f16,
-   i64, f64, v2i32, v2f32, v4f16, v4i16,
+  [i64, f64, v2i32, v2f32, v4f16, v4i16,
    v3i32, v3f32,
    v4i32, v4f32, v8i16, v8f16,
    v8i32, v8f32, v16i16, v16f16,
    v16i32, v16f32],
-  32,  // 对齐要求
-  (add VGPR, VGPR_64, VGPR_96, VGPR_128, VGPR_256, VGPR_512)> {
-  let Size = 32;  // 基础大小
-  let IsVGPR = 1;
-}
+  64,  // 对齐要求
+  (add VGPR_64, VGPR_96, VGPR_128, VGPR_256, VGPR_512)>;
 
 // Any type register. Used for .insn directives when we don't know what the
 // register types could be.
