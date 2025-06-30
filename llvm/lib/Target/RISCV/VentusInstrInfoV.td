@@ -1522,7 +1522,7 @@ def : Pat<(f32 (bitconvert (i32 GPR:$src))), (VMV_V_X GPR:$src)>;
 // zvfhmin: half-precision vector load/store and conversion patterns
 //===----------------------------------------------------------------------===//
 
-multiclass ZvfhminPatterns {
+let Predicates = [HasStdExtZvfhmin] in {
   // 2 lanes
   def : Pat<(v2f16 (load VGPR:$rs1)), (VLE16_V VGPR:$rs1, 0)>;
   def : Pat<(store (v2f16 VGPR:$vs3), VGPR:$rs1), (VSE16_V VGPR:$vs3, VGPR:$rs1, 0)>;
@@ -1553,4 +1553,3 @@ multiclass ZvfhminPatterns {
   def : Pat<(v32f32 (fpextend (v32f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
   def : Pat<(v32f16 (fpround (v32f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
 }
-defm : ZvfhminPatterns;
