@@ -934,7 +934,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     //   setOperationAction({ISD::INSERT_VECTOR_ELT, ISD::EXTRACT_VECTOR_ELT},
     //                       VT, Custom);
 
-      setOperationAction({ISD::LOAD, ISD::STORE}, VT, Custom);
+      // setOperationAction({ISD::LOAD, ISD::STORE}, VT, Custom);
 
     //   setOperationAction(ISD::SETCC, VT, Custom);
 
