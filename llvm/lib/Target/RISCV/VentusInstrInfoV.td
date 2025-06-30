@@ -1524,10 +1524,10 @@ def : Pat<(f32 (bitconvert (i32 GPR:$src))), (VMV_V_X GPR:$src)>;
 
 multiclass ZvfhminPatterns {
   // 2 lanes
-  def : Pat<(v2f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
-  def : Pat<(store (v2f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
-  def : Pat<(v2f32 (fpextend (v2f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
-  def : Pat<(v2f16 (fpround (v2f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
+  def : Pat<(v2f16 (load VGPR:$rs1)), (VLE16_V VGPR:$rs1, 0)>;
+  def : Pat<(store (v2f16 VGPR:$vs3), VGPR:$rs1), (VSE16_V VGPR:$vs3, VGPR:$rs1, 0)>;
+  def : Pat<(v2f32 (fpextend (v2f16 VGPR:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
+  def : Pat<(v2f16 (fpround (v2f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPR:$vs2)>;
 
   // 4 lanes
   def : Pat<(v4f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;

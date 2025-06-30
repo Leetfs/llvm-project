@@ -873,6 +873,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         SetCommonVFPActions(VT);
       }
     } else if (Subtarget.hasVInstructionsF16Minimal()) {
+      setOperationAction(ISD::LOAD, MVT::v2f16,  Custom);
+      setOperationAction(ISD::STORE, MVT::v2f16, Custom);
+      setOperationAction(ISD::VP_LOAD,  MVT::v2f16, Custom);
+      setOperationAction(ISD::VP_STORE, MVT::v2f16, Custom);
       for (MVT VT : F16VecVTs) {
         if (!isTypeLegal(VT))
           continue;
@@ -880,10 +884,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         setOperationAction(ISD::FP_EXTEND, VT,  Custom);
         setOperationAction(ISD::VP_FP_ROUND, VT, Custom);
         setOperationAction(ISD::VP_FP_EXTEND, VT, Custom);
-        setOperationAction(ISD::LOAD, VT,  Legal);
-        setOperationAction(ISD::STORE, VT, Legal);
-        setOperationAction(ISD::VP_LOAD,  VT, Legal);
-        setOperationAction(ISD::VP_STORE, VT, Legal);
+        setOperationAction(ISD::LOAD, VT,  Custom);
+        setOperationAction(ISD::STORE, VT, Custom);
+        setOperationAction(ISD::VP_LOAD,  VT, Custom);
+        setOperationAction(ISD::VP_STORE, VT, Custom);
       }
     }
 
@@ -930,7 +934,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     //   setOperationAction({ISD::INSERT_VECTOR_ELT, ISD::EXTRACT_VECTOR_ELT},
     //                       VT, Custom);
 
-      // setOperationAction({ISD::LOAD, ISD::STORE}, VT, Custom);
+      setOperationAction({ISD::LOAD, ISD::STORE}, VT, Custom);
 
     //   setOperationAction(ISD::SETCC, VT, Custom);
 
