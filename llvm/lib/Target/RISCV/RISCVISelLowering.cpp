@@ -872,23 +872,6 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
           continue;
         SetCommonVFPActions(VT);
       }
-    } else if (Subtarget.hasVInstructionsF16Minimal()) {
-      setOperationAction(ISD::LOAD, MVT::v2f16,  Custom);
-      setOperationAction(ISD::STORE, MVT::v2f16, Custom);
-      setOperationAction(ISD::VP_LOAD,  MVT::v2f16, Custom);
-      setOperationAction(ISD::VP_STORE, MVT::v2f16, Custom);
-      for (MVT VT : F16VecVTs) {
-        if (!isTypeLegal(VT))
-          continue;
-        setOperationAction(ISD::FP_ROUND, VT, Custom);
-        setOperationAction(ISD::FP_EXTEND, VT,  Custom);
-        setOperationAction(ISD::VP_FP_ROUND, VT, Custom);
-        setOperationAction(ISD::VP_FP_EXTEND, VT, Custom);
-        setOperationAction(ISD::LOAD, VT,  Custom);
-        setOperationAction(ISD::STORE, VT, Custom);
-        setOperationAction(ISD::VP_LOAD,  VT, Custom);
-        setOperationAction(ISD::VP_STORE, VT, Custom);
-      }
     }
 
     if (Subtarget.hasVInstructionsF32()) {
@@ -1125,6 +1108,27 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
       setOperationAction(FloatingPointVecReduceOps, VT, Custom);
 
       setOperationAction(FloatingPointVPOps, VT, Custom);
+    }
+
+    // Special handling for v2f16 when hasVInstructionsF16Minimal
+    // The above loops set all operations to Expand by default, but we need
+    // to override LOAD/STORE operations for v2f16 to Legal
+    if (Subtarget.hasVInstructionsF16Minimal()) {
+
+      // Define all f16 vector types that need special handling
+      static const MVT F16VectorTypes[] = {
+        MVT::v2f16, MVT::v4f16, MVT::v8f16, MVT::v16f16
+      };
+      
+      // Apply the same operations to all f16 vector types
+      for (MVT VT : F16VectorTypes) {
+        if (useRVVForFixedLengthVectorVT(VT)) {
+          setOperationAction(ISD::LOAD, VT, Legal);
+          setOperationAction(ISD::STORE, VT, Legal);
+          setOperationAction(ISD::VP_LOAD, VT, Legal);
+          setOperationAction(ISD::VP_STORE, VT, Legal);
+        }
+      }
     }
 
     //   // Custom-legalize bitcasts from fixed-length vectors to scalar types.
