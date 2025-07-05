@@ -191,6 +191,7 @@ public:
   bool hasStdExtZcf() const { return HasStdExtZcf; }
   bool hasStdExtZvl() const { return ZvlLen != 0; }
   bool hasStdExtZvfh() const { return HasStdExtZvfh; }
+  bool hasStdExtZvfhmin() const { return HasStdExtZvfhmin; }
   bool hasStdExtZfhmin() const { return HasStdExtZfhmin; }
   bool hasStdExtZfh() const { return HasStdExtZfh; }
   bool hasStdExtZfinx() const { return HasStdExtZfinx; }

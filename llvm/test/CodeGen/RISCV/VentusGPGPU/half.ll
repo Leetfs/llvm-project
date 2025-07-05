@@ -22,6 +22,22 @@ entry:
   ret void
 }
 
+; ; Test f16 to f32 conversion for <2 x half>
+; define <2 x float> @test_fpext2(<2 x half> %v) {
+; entry:
+;   ; VENTUS:    vfwcvt.f.f.v v0, v0
+;   %ext = fpext <2 x half> %v to <2 x float>
+;   ret <2 x float> %ext
+; }
+
+; ; Test f32 to f16 conversion for <2 x float>
+; define <2 x half> @test_fptrunc2(<2 x float> %v) {
+; entry:
+;   ; VENTUS:    vfncvt.f.f.w v0, v0
+;   %trunc = fptrunc <2 x float> %v to <2 x half>
+;   ret <2 x half> %trunc
+; }
+
 
 ; ; Test vector load of <4 x half>
 ; define <4 x half> @test_vle4(<4 x half>* %src) {

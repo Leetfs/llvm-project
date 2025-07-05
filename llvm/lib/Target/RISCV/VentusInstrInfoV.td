@@ -1546,10 +1546,4 @@ let Predicates = [HasStdExtZvfhmin] in {
   def : Pat<(store (v16f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
   def : Pat<(v16f32 (fpextend (v16f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
   def : Pat<(v16f16 (fpround (v16f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
-
-  // 32 lanes
-  def : Pat<(v32f16 (load VGPRAll:$rs1)), (PSEUDO_VLE16_GENERIC VGPRAll:$rs1, 0)>;
-  def : Pat<(store (v32f16 VGPRAll:$vs3), VGPRAll:$rs1), (PSEUDO_VSE16_GENERIC VGPRAll:$vs3, VGPRAll:$rs1, 0)>;
-  def : Pat<(v32f32 (fpextend (v32f16 VGPRAll:$vs2))), (VFWCVT_F_F_V VGPRAll:$vs2)>;
-  def : Pat<(v32f16 (fpround (v32f32 VGPRAll:$vs2))), (VFNCVT_F_F_W VGPRAll:$vs2)>;
 }

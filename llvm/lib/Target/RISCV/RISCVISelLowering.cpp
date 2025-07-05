@@ -1127,6 +1127,20 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
           setOperationAction(ISD::STORE, VT, Legal);
           setOperationAction(ISD::VP_LOAD, VT, Legal);
           setOperationAction(ISD::VP_STORE, VT, Legal);
+          
+          // // Support for VFWCVT_F_F_V (fp_extend from f16 to f32)
+          // setOperationAction(ISD::FP_EXTEND, VT, Custom);
+          
+          // // Support for VFNCVT_F_F_W (fp_round from f32 to f16)
+          // // Get the corresponding f32 vector type
+          // if (VT == MVT::v2f16)
+          //   setOperationAction(ISD::FP_ROUND, MVT::v2f32, Legal);
+          // else if (VT == MVT::v4f16)
+          //   setOperationAction(ISD::FP_ROUND, MVT::v4f32, Legal);
+          // else if (VT == MVT::v8f16)
+          //   setOperationAction(ISD::FP_ROUND, MVT::v8f32, Legal);
+          // else if (VT == MVT::v16f16)
+          //   setOperationAction(ISD::FP_ROUND, MVT::v16f32, Legal);
         }
       }
     }
