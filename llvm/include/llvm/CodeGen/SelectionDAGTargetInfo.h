@@ -34,6 +34,7 @@ public:
   SelectionDAGTargetInfo(const SelectionDAGTargetInfo &) = delete;
   SelectionDAGTargetInfo &operator=(const SelectionDAGTargetInfo &) = delete;
   virtual ~SelectionDAGTargetInfo();
+  virtual bool isTargetStrictFPOpcode(unsigned Opcode) const { return false; }
 
   /// Emit target-specific code that performs a memcpy.
   /// This can be used by targets to provide code sequences for cases

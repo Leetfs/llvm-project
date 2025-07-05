@@ -518,9 +518,10 @@ def Reg32Types : RegisterTypes<[i32, f32, v2i16, v2f16]>;
 
 // VGPR 32-bit registers class
 def VGPR : RVRegisterClass<"RISCV",
-                            !listconcat(Reg32Types.types, Reg16Types.types),
-                            32,
-                            (add (sequence "V%u", 0, 255))> {
+// [i32, f32, v2i16, v2f16, i16, f16, v8f16, v16f16, v32f16, v8f32, v16f32, v32f32],
+  !listconcat(Reg32Types.types, Reg16Types.types),
+  32,
+  (add (sequence "V%u", 0, 255))> {
   let Size = 32;
   let IsVGPR = 1;
 }
@@ -546,6 +547,16 @@ def VReg_96  : RVRegisterClass<"RISCV", [v3i32, v3f32], 64, (add VGPR_96)>;
 def VReg_128 : RVRegisterClass<"RISCV", [v4i32, v4f32, v8i16, v8f16], 64, (add VGPR_128)>;
 def VReg_256 : RVRegisterClass<"RISCV", [v8i32, v8f32, v16i16, v16f16], 64, (add VGPR_256)>;
 def VReg_512 : RVRegisterClass<"RISCV", [v16i32, v16f32], 64, (add VGPR_512)>;
+
+def VGPRAll : RVRegisterClass<"RISCV",
+  // 包含所有支持的值类型
+  [i64, f64, v2i32, v2f32, v4f16, v4i16,
+   v3i32, v3f32,
+   v4i32, v4f32, v8i16, v8f16,
+   v8i32, v8f32, v16i16, v16f16,
+   v16i32, v16f32],
+  64,  // 对齐要求
+  (add VGPR_64, VGPR_96, VGPR_128, VGPR_256, VGPR_512)>;
 
 // Any type register. Used for .insn directives when we don't know what the
 // register types could be.

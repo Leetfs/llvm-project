@@ -74,6 +74,7 @@ private:
   bool HasStdExtZve64f = false;
   bool HasStdExtZve64d = false;
   bool HasStdExtZvfh = false;
+  bool HasStdExtZvfhmin = false;
   bool HasStdExtZfhmin = false;
   bool HasStdExtZfh = false;
   bool HasStdExtZfinx = false;
@@ -190,6 +191,7 @@ public:
   bool hasStdExtZcf() const { return HasStdExtZcf; }
   bool hasStdExtZvl() const { return ZvlLen != 0; }
   bool hasStdExtZvfh() const { return HasStdExtZvfh; }
+  bool hasStdExtZvfhmin() const { return HasStdExtZvfhmin; }
   bool hasStdExtZfhmin() const { return HasStdExtZfhmin; }
   bool hasStdExtZfh() const { return HasStdExtZfh; }
   bool hasStdExtZfinx() const { return HasStdExtZfinx; }
@@ -273,6 +275,9 @@ public:
   // Vector codegen related methods.
   bool hasVInstructions() const { return HasStdExtZve32x; }
   bool hasVInstructionsI64() const { return HasStdExtZve64x; }
+  bool hasVInstructionsF16Minimal() const {
+    return HasStdExtZvfhmin || HasStdExtZvfh;
+  }
   bool hasVInstructionsF16() const { return HasStdExtZvfh && HasStdExtZfh; }
   bool hasVInstructionsF32() const {
     return HasStdExtZve32f && (HasStdExtF || HasStdExtZfinx);

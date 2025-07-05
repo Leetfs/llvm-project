@@ -389,6 +389,21 @@ def FeatureStdExtZvfh
                        "'Zvfh' (Vector Half-Precision Floating-Point)",
                        [FeatureStdExtZve32f]>;
 
+def FeatureStdExtZvfhmin
+    : SubtargetFeature<"zvfhmin", "HasStdExtZvfhmin", "true",
+                       "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal)",
+                       [FeatureStdExtZve32f]>;
+
+def HasStdExtZvfhmin
+    : Predicate<"Subtarget->hasStdExtZvfhmin()">,
+      AssemblerPredicate<(all_of FeatureStdExtZvfhmin),
+                         "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal)">;
+
+def HasVInstructionsF16Minimal : Predicate<"Subtarget->hasVInstructionsF16Minimal()">,
+      AssemblerPredicate<(any_of FeatureStdExtZvfhmin, FeatureStdExtZvfh),
+                         "'Zvfhmin' (Vector Half-Precision Floating-Point Minimal) or "
+                         "'Zvfh' (Vector Half-Precision Floating-Point)">;
+
 def FeatureStdExtZicbom
     : SubtargetFeature<"zicbom", "HasStdExtZicbom", "true",
                        "'Zicbom' (Cache-Block Management Instructions)">;
@@ -646,7 +661,8 @@ def : ProcessorModel<"ventus-gpgpu", RocketModel, [Feature32Bit,
                                                    FeatureStdExtZhinx,
                                                    FeatureStdExtZfinx,
                                                    FeatureStdExtZdinx,
-                                                   FeatureStdExtZve32f]>;
+                                                   FeatureStdExtZve32f,
+                                                   FeatureStdExtZvfhmin]>;
 
 //===----------------------------------------------------------------------===//
 // Define the RISC-V target.
